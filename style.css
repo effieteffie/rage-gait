@@ -1,15 +1,306 @@
-.container {
+
+* {
+    outline: red dotted 1p
+}
+
+/* Colors and spacing live in variables so we can change them in one place */
+:root {
+    --black: #000;
+    --white: #f6c8e8;
+    --yellow: #f4d31a; /* picked from the issue 6 banner */
+    --gap: 8px;
+    --header-gap: 16px; /* empty band under the header on article pages (see .site-header:has) */
+    --row-padding: 4px;
+}
+
+body {
+    margin: 0;
+    padding: 0 var(--gap) var(--gap); /* no top padding: the sticky header has its own */
+    background-color: var(--white);
+    color: var(--black);
+    /* font stack: the browser uses the first font it finds on the computer */
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: 700;       /* bold, like archivio-uno */
+    font-size: 18px;
+    line-height: 1.2;       /* space between lines, as a multiple of the font size */
+    letter-spacing: -0.01em; /* pulls letters slightly closer together */
+}
+
+/* Links: same color as the text, no underline, fade a little on hover */
+a {
+    color: inherit;         /* "use whatever color the parent has" instead of blue */
+    text-decoration: none;
+}
+a:hover {
+    opacity: 0.5;
+}
+
+/* The 6-column grid: six equal columns.
+   minmax(0, 1fr) stops long words from forcing a column wider. */
+.grid {
     display: grid;
-    grid-template-columns: auto auto auto;
-    background-color: dodgerblue;
-    padding: 10px;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    column-gap: var(--gap);
 }
 
-.container div {
-    background-color:aliceblue;
-    border: 1px solid black;
-    padding: 10px;
-    font-size: 30px;
-    text-align: left;
+.logo {
+    font-family: "Georgia", "Times New Roman", Times, serif;
+    font-weight: 500;
+    letter-spacing: -0.08em; /* em = relative to the text size, so it scales */
+}
+.site-header .site-title {
+    display: block;
+    margin-bottom: 20px; /* empty space between the title and the nav links */
 }
 
+/* Archive table rows share the 6-column grid from the header */
+.row {
+    padding: var(--row-padding) 0px;
+    border-bottom: 1px solid var(--black);
+}
+.table-head {
+    border-bottom-width: 2px;
+}
+.col-title {
+    grid-column: span 4; /* the title takes 3 of the 6 columns */
+}
+/* number, date and word count take 1 column each by default: 3+1+1+1 = 6 */
+
+/* Header stays at the top of the window while you scroll (position: sticky) */
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 5;                 /* above the table, so rows slide underneath it */
+    background: var(--white);   /* hides the rows that slide underneath */
+    padding: var(--gap) 0 0;    /* just a gap at the top */
+}
+/* space between the nav links and the column names (only on the archive page) */
+.site-header .table-head {
+    margin-top: 8px;
+}
+
+/* On article pages (a header that is directly followed by an .article) the header keeps an
+   empty band under its links. It has a solid background, so scrolling text disappears under
+   the band before it can touch the links. :has() lets a rule look at what's around an element,
+   and + means "the very next element". */
+.site-header:has(+ .article) {
+    padding-bottom: var(--header-gap);
+}
+
+/* Banner: hidden by default (height capped at 0), opens when the row is hovered */
+.banner-wrap {
+    grid-column: 1 / -1;  /* from the first grid line to the last = all 6 columns */
+    max-height: 0;
+    overflow: hidden;     /* hide whatever doesn't fit inside the capped height */
+    transition: max-height 1.6s ease;
+}
+.row:hover .banner-wrap {
+    max-height: 40vw;     /* 1vw = 1% of window width; a 3:1 banner is about 33vw tall */
+}
+.banner-wrap img {
+    display: block;
+    width: 50%;
+    aspect-ratio: 3 / 1;  /* keeps the 1200x400 shape */
+    object-fit: cover;
+    margin-top: 4px;
+}
+
+/* Issue pages: full-width text */
+.article {
+    font-size: 24px;
+    line-height: 1.15;
+}
+.article h1 {
+    font-size: inherit; /* same size as the text; the browser makes h1 huge by default */
+    margin: 0 0 1em 0;
+}
+.article p {
+    margin: 0 0 1em 0;
+}
+.article-meta {
+    font-size: 15px;
+    font-weight: 400;
+}
+
+/* Highlight links: white text on black, like the SUPERSEDIA example */
+.article a {
+    background: var(--black);
+    color: var(--white);
+    padding: 0 0.2em;
+    /* without "clone", padding/background would only apply at the very start
+       and end of a link that wraps across lines */
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+}
+
+/* ---------- Opening animation ---------- */
+/* These rules only apply while <body> has the class "intro-on". */
+
+/* An invisible block one screen tall, so the page has something to scroll through */
+body.intro-on #intro-spacer {
+    height: 100vh;
+}
+
+/* Make the page exactly two screens tall (one screen of spacer + one screen of content),
+   so you can scroll through the intro and no further. If the table is taller than that,
+   the page just grows as needed. border-box counts the body's padding inside the 200vh. */
+body.intro-on {
+    min-height: 200vh;
+    box-sizing: border-box;
+}
+
+/* While the intro is still travelling (the class "intro-done" isn't on <body> yet), the page
+   underneath ignores the mouse: no banners opening, no links, no hover fades. */
+body.intro-on:not(.intro-done) .site-header,
+body.intro-on:not(.intro-done) main {
+    pointer-events: none;
+}
+
+/* The header's own title is hidden while the intro is on; the floating title takes its place */
+body.intro-on .site-header .site-title {
+    visibility: hidden;
+}
+
+/* A full-screen layer on top of everything. It never blocks clicks (pointer-events: none). */
+#intro {
+    position: fixed;
+    inset: 0;               /* top, right, bottom and left all 0 = covers the screen */
+    z-index: 10;            /* higher number = drawn on top */
+    background: var(--white);
+    pointer-events: none;
+}
+#ascii-far,
+#ascii {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* The mantis, a faded ghost. The poster used the "Divide" blend mode, which CSS doesn't have,
+   but Divide = color-dodge applied to the inverted picture:
+   color-dodge gives  background / (1 - picture),  and inverting first makes that
+   background / picture,  which is exactly Divide. */
+#mantis {
+    position: absolute;
+    height: 120vh;          /* a bit taller than the screen */
+    width: auto;
+    left: -5vw;
+    bottom: -10vh;
+    filter: invert(1);
+    mix-blend-mode: color-dodge;
+    opacity: 0.4;          /* the "ghost" strength: 0 = invisible, 1 = as on the poster */
+    pointer-events: none;
+    user-select: none;
+}
+#intro-hint {
+    position: absolute;
+    bottom: var(--gap);
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-weight: 400;
+}
+
+/* The floating title. script.js sets its position, size and padding as you scroll. */
+#float-title {
+    position: fixed;
+    z-index: 20;            /* above the intro layer and the header */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+    pointer-events: none;   /* can't be hovered or clicked while it's travelling; JS switches it on at the end */
+}
+
+/* When the intro is off, hide all of its pieces */
+body:not(.intro-on) #intro,
+body:not(.intro-on) #float-title,
+body:not(.intro-on) #intro-spacer {
+    display: none;
+}
+
+/* Images inside an article */
+.article img {
+    display: block;
+    width: 100%;
+    max-width: 720px;   /* don't stretch small screenshots across a huge screen */
+    height: auto;
+    margin: 0 0 1em 0;
+}
+
+/* A long quotation (the Marx quote in issue 1) */
+.article blockquote {
+    margin: 0 0 1em 0;
+    padding-left: 1em;
+    border-left: 2px solid var(--black);
+}
+.article blockquote p {
+    margin-bottom: 0;
+}
+
+/* The works cited / bibliography at the end of an article: smaller and lighter */
+.works-cited {
+    font-size: 15px;
+    font-weight: 400;
+}
+/* Long web addresses may break anywhere, so they never push the page sideways */
+.article a {
+    overflow-wrap: anywhere;
+}
+
+/* ---------- Small screens ----------
+   @media (max-width: 800px) means "only apply the rules inside when the window is 800px wide
+   or narrower". It goes near the END of the file so it can override the rules above.
+   Seven columns don't fit on a phone, so the header uses three, and every issue becomes
+   a little stack of lines instead of a table row. */
+@media (max-width: 800px) {
+    /* the header: the logo gets a row of its own, then the 6 links fall into 2 rows of 3 */
+    .grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .site-header .site-title {
+        grid-column: 1 / -1;
+        margin-bottom: 8px;
+    }
+    .site-header {
+        padding-bottom: 12px;   /* a little space between the links and the first issue */
+    }
+
+    /* the column labels (issue / date / word count) aren't needed: each issue labels its own lines */
+    .site-header .table-head {
+        display: none;
+    }
+
+    /* each issue: one column, so the lines stack: title, issue x, date, (banner) */
+    #archive .row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .col-title {
+        grid-column: 1 / -1;    /* 1 / -1 = "the whole width", which here is just the one column */
+    }
+    .col-words {
+        display: none;          /* no word count on a phone */
+    }
+    .col-number::before {
+        content: "issue ";      /* ::before adds text in front of an element, here "issue " before the 6 */
+    }
+
+    /* banners use the full width on a phone */
+    .banner-wrap img {
+        width: 100%;
+    }
+}
+
+/* ---------- Touch screens ----------
+   (hover: none) is true on devices where you can't hover, like phones and tablets.
+   There a banner can never be revealed by hovering, so it's always shown, under each issue. */
+@media (hover: none) {
+    .banner-wrap {
+        max-height: none;     /* no longer squashed to 0 */
+        transition: none;
+    }
+    .banner-wrap img {
+        margin: 4px 0;
+    }
+}

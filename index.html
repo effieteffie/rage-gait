@@ -5,12 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rage Gait</title>
     <link rel="stylesheet" href="style.css">
+    <!-- if JavaScript is off, skip the intro and show the page -->
+    <noscript>
+        <style>
+            #intro, #float-title, #intro-spacer { display: none; }
+            body.intro-on .site-header .site-title { visibility: visible; }
+        </style>
+    </noscript>
 </head>
-<body>
-    <div class="container">
-        <div>Issue 1</div>
-        <div>Issue 2</div>
-        <div>Issue 3</div>
+<body class="intro-on">
+    <script>
+        // Runs right away, before the page is drawn: should the intro play?
+        // Yes on the first visit in this tab, and on reload. No when coming back from another page.
+        {
+            let entry = performance.getEntriesByType("navigation")[0];
+            let navType = entry ? entry.type : "navigate"; // "navigate", "reload" or "back_forward"
+            let alreadySeen = false;
+            try {
+                alreadySeen = sessionStorage.getItem("introSeen") === "yes";
+            } catch (e) { } // storage can be blocked (private windows); then we just play the intro
+
+            if (alreadySeen && navType !== "reload") {
+                document.body.classList.remove("intro-on"); // switches the intro off
+            } else {
+                try { sessionStorage.setItem("introSeen", "yes"); } catch (e) { }
+            }
+        }
+    </script>
+    <!-- opening animation: characters drift down; scrolling moves the title to the corner -->
+    <div id="intro">
+        <canvas id="ascii-far"></canvas>   <!-- far characters: drawn behind the mantis -->
+        <img id="mantis" src="assets/mantis.webp" alt="">
+        <canvas id="ascii"></canvas>       <!-- near characters: drawn in front of the mantis -->
+        <div id="intro-hint">scroll</div>
     </div>
+    <a id="float-title" class="logo" href="index.html">rage gait</a>
+    <div id="intro-spacer"></div>
+
+    <header class="site-header">
+        
+        <nav class="grid">
+             <a class="site-title logo" href="index.html">rage gait</a>
+            <a href="index.html">archive</a>
+            <a href="about.html">about us</a>
+            <a href="upcoming.html">upcoming</a>
+            <a href="contact.html">contact</a>
+            <a href="resources.html">resources</a>
+            <a href="#subscribe">subscribe</a>
+        </nav>
+
+        <!-- column names: this never changes, so it lives in plain HTML.
+             It's inside the header so it stays on screen with it while the rows scroll. -->
+        <div class="row grid table-head">
+            <div class="col-title">title</div>
+            <div class="col-number">issue</div>
+            <div class="col-date-title">date</div>
+            <div class="col-words">word count</div>
+        </div>
+    </header>
+
+    <main>
+        <!-- the issue rows are built here by script.js -->
+        <div id="archive"></div>
+    </main>
+
+    <!-- order matters: issues.js defines `issues`, then script.js uses it -->
+    <script src="issues.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
