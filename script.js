@@ -2,10 +2,100 @@
 // Think of it like p5: instead of drawing shapes on a canvas,
 // we create page elements (divs, images) and put them on the page.
 
+// The banner animation. When the mouse enters an issue's row, its black-and-white banner starts out
+// pixelated (made of big blocks) and sharpens as the hover goes on, while the color picture fades in
+// on top of it. The fade to color is done in CSS (see .row.playing .banner-color in style.css).
+let bannerBlockStart = 60;   // at the start, the banner is made of blocks this wide (its picture is 1200 wide)
+let bannerSharpenMs = 1500;  // the blocks shrink to nothing over this many milliseconds
+
+// Gives one banner its animation.
+//   row    the table row the banner belongs to
+//   canvas the black-and-white copy, which we draw ourselves
+//   img    the color copy
+function setupBanner(row, canvas, img) {
+    let ctx = canvas.getContext("2d");               // the "pen" we draw with, like in p5
+    let small = document.createElement("canvas");    // a tiny canvas, used to shrink the picture into blocks
+    let smallCtx = small.getContext("2d");
+    let frameId = null;
+    let reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Draws the picture made of blocks that are `block` pixels wide. block = 1 means perfectly sharp.
+    function draw(block) {
+        let w = canvas.width;
+        let h = canvas.height;
+        if (block <= 1) {
+            ctx.drawImage(img, 0, 0, w, h);
+            return;
+        }
+        small.width = Math.max(1, Math.ceil(w / block));   // (setting the size also clears the canvas)
+        small.height = Math.max(1, Math.ceil(h / block));
+        smallCtx.imageSmoothingQuality = "high";
+        smallCtx.drawImage(img, 0, 0, small.width, small.height);  // 1. shrink: each pixel is the average of a block
+        ctx.imageSmoothingEnabled = false;                          // 2. blow it up again WITHOUT smoothing,
+        ctx.drawImage(small, 0, 0, w, h);                           //    so every shrunk pixel becomes a visible square
+    }
+
+    // Starts (or restarts) the animation from the beginning.
+    function start() {
+        row.classList.add("playing");        // makes the color picture fade in (style.css)
+        cancelAnimationFrame(frameId);
+        if (reduceMotion) {                  // the visitor asked for less motion: no pixelation
+            draw(1);
+            return;
+        }
+        draw(bannerBlockStart);              // start from the blockiest version right away
+        let startTime = performance.now();
+        function frame(now) {
+            // p goes from 0 (start) to 1 (after bannerSharpenMs)
+            let p = Math.max(0, Math.min((now - startTime) / bannerSharpenMs, 1));
+            // the blocks shrink fast at first and slowly at the end: 80, 60, 40 ... 3, 2, 1
+            draw(Math.max(1, Math.round(bannerBlockStart * (1 - p) * (1 - p))));
+            if (p < 1) {
+                frameId = requestAnimationFrame(frame);
+            }
+        }
+        frameId = requestAnimationFrame(frame);
+    }
+
+    function stop() {
+        cancelAnimationFrame(frameId);
+        row.classList.remove("playing");     // the color picture fades away again
+    }
+
+    // Once the picture has loaded we know its size, so we can set the canvas to match.
+    function init() {
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        draw(reduceMotion ? 1 : bannerBlockStart);
+    }
+    if (img.complete && img.naturalWidth > 0) {
+        init();
+    } else {
+        img.addEventListener("load", init);
+    }
+
+    if (window.matchMedia("(hover: none)").matches) {
+        // A touch screen has no hover: play when the row scrolls into view, and reset when it leaves.
+        new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.intersectionRatio >= 0.6) {
+                    start();
+                } else if (!entry.isIntersecting) {
+                    stop();
+                }
+            });
+        }, { threshold: [0, 0.6] }).observe(row);
+    } else {
+        row.addEventListener("mouseenter", start);
+        row.addEventListener("mouseleave", stop);
+    }
+}
+
 // Makes one table row from a list of 4 pieces of text.
 // banner is an image path (or nothing); altText describes the image.
 // url is the issue's page (or nothing): if given, the title becomes a link.
-function makeRow(cells, banner, altText, url) {
+// threshold (optional) is how bright a banner pixel must be to turn white, from 0 to 1.
+function makeRow(cells, banner, altText, url, threshold) {
     // like p5's createDiv(): make a new empty <div>
     let row = document.createElement("div");
     row.className = "row grid";
@@ -36,13 +126,28 @@ function makeRow(cells, banner, altText, url) {
         let wrap = document.createElement("div");
         wrap.className = "banner-wrap";
 
-        let img = document.createElement("img");
+        // the frame holds two copies of the same picture, stacked on top of each other
+        let frame = document.createElement("div");
+        frame.className = "banner-frame";
+        if (threshold !== undefined) {
+            frame.style.setProperty("--threshold", threshold); // read by the CSS filter
+        }
+
+        let canvas = document.createElement("canvas");   // the black-and-white copy (drawn by setupBanner)
+        canvas.className = "banner-threshold";
+        canvas.setAttribute("aria-hidden", "true");      // screen readers use the color picture's description
+
+        let img = document.createElement("img");         // the color copy
+        img.className = "banner-color";
         img.src = banner;
         img.alt = altText;
-        img.loading = "lazy"; // don't download the image until it's needed
 
-        wrap.appendChild(img);
+        frame.appendChild(canvas);
+        frame.appendChild(img);
+        wrap.appendChild(frame);
         row.appendChild(wrap);
+
+        setupBanner(row, canvas, img);
     }
 
     return row; // hand the finished row back to whoever called us
@@ -62,7 +167,8 @@ function buildTable() {
             [issue.title, issue.number, issue.date, issue.wordCount],
             issue.banner,
             issue.title,
-            issue.url // undefined if the issue has no url: that's fine
+            issue.url, // undefined if the issue has no url: that's fine
+            issue.threshold
         );
         archive.appendChild(row);
     }

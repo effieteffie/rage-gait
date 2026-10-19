@@ -1,16 +1,15 @@
 
-* {
-    outline: red dotted 1p
-}
 
 /* Colors and spacing live in variables so we can change them in one place */
 :root {
-    --black: #000;
-    --white: #f6c8e8;
+    --black: #4B2636;
+    --white: #EAAED3;
     --yellow: #f4d31a; /* picked from the issue 6 banner */
+    --pink-dark: #c2185b; /* the dark pink the subscribe link pulses to */
     --gap: 8px;
     --header-gap: 16px; /* empty band under the header on article pages (see .site-header:has) */
     --row-padding: 4px;
+    --article-width: 36em; /* how wide the text of an issue page can get (em = relative to the text size) */
 }
 
 body {
@@ -21,7 +20,7 @@ body {
     /* font stack: the browser uses the first font it finds on the computer */
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-weight: 700;       /* bold, like archivio-uno */
-    font-size: 18px;
+    font-size: 20px;
     line-height: 1.2;       /* space between lines, as a multiple of the font size */
     letter-spacing: -0.01em; /* pulls letters slightly closer together */
 }
@@ -51,6 +50,13 @@ a:hover {
 .site-header .site-title {
     display: block;
     margin-bottom: 20px; /* empty space between the title and the nav links */
+}
+
+a[data-formkit-toggle] {
+    justify-self: start;
+    align-self: start;     /* top of the row, like the other links */
+    border: 2px dotted var(--black);
+    padding: 0px;
 }
 
 /* Archive table rows share the 6-column grid from the header */
@@ -97,18 +103,64 @@ a:hover {
 .row:hover .banner-wrap {
     max-height: 40vw;     /* 1vw = 1% of window width; a 3:1 banner is about 33vw tall */
 }
-.banner-wrap img {
-    display: block;
+/* A banner is two copies of the same picture, stacked on top of each other:
+     .banner-threshold  a canvas that script.js draws pixelated and then sharpens, in black and white
+     .banner-color      the normal color picture: invisible until you've been hovering for a long time */
+.banner-frame {
+    position: relative;
     width: 50%;
     aspect-ratio: 3 / 1;  /* keeps the 1200x400 shape */
-    object-fit: cover;
     margin-top: 4px;
+}
+.banner-threshold,
+.banner-color {
+    position: absolute;
+    inset: 0;             /* both fill the frame exactly */
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.banner-threshold {
+    /* The "threshold" look: every pixel becomes pure black or pure white, and the white melts away.
+         grayscale(1)      removes the color (the black-and-white step)
+         brightness(...)   moves the cut-off point: --threshold is how bright a pixel must be to count as white
+         contrast(50)      pushes every pixel to black or white (the threshold itself)
+       mix-blend-mode: multiply then lets the page color show through the white parts
+       (white x pink = pink) while black stays black, which is what "Blend If" did in Photoshop.
+       --threshold comes from issues.js, one number per banner (0.5 if an issue doesn't set one). */
+    filter: grayscale(1) brightness(calc(0.5 / var(--threshold, 0.5))) contrast(50);
+    mix-blend-mode: multiply;
+}
+
+.banner-color {
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.4s ease;   /* how fast it disappears again when you move the mouse away */
+}
+.row.playing .banner-color {
+    opacity: 1;
+    /* transition: what, how long it takes, speed curve, and a DELAY before it starts.
+       Here: nothing happens for 4.5 seconds (the banner stays black and white), then the color
+       fades in over 1.5 seconds, so it's fully color after 6 seconds of hovering. */
+    transition: opacity 1.5s ease-in-out 2s;
+}
+@media (prefers-reduced-motion: reduce) {
+    .row.playing .banner-color {
+        transition: none;            /* no gradual fade for people who asked for less motion */
+    }
 }
 
 /* Issue pages: full-width text */
 .article {
     font-size: 24px;
     line-height: 1.15;
+    max-width: var(--article-width);   /* never wider than this, so lines stay a comfortable length */
+    margin-left: auto;                 /* "auto" on both sides splits the leftover space evenly: */
+    margin-right: auto;                /* that centers the text and gives it margins */
+    outline: black dotted 2px;
+    outline-offset: -2px;
+    padding: 0.5em 1em; 
 }
 .article h1 {
     font-size: inherit; /* same size as the text; the browser makes h1 huge by default */
@@ -116,6 +168,15 @@ a:hover {
 }
 .article p {
     margin: 0 0 1em 0;
+    font-family: "Georgia", Times, serif; /* a serif font for the text */
+    font-weight: 400; /* normal weight, not bold */
+    text-indent: 1em;  /* the FIRST line of every paragraph starts 1.5em in (36px at 24px text) */
+}
+/* ...except the small lines that aren't body text: the issue/date line, the credits, the works cited.
+   "p.article-meta" is more specific than ".article p", so this rule wins. */
+.article p.article-meta,
+.article p.works-cited {
+    text-indent: 0;
 }
 .article-meta {
     font-size: 15px;
@@ -181,7 +242,7 @@ body.intro-on .site-header .site-title {
    but Divide = color-dodge applied to the inverted picture:
    color-dodge gives  background / (1 - picture),  and inverting first makes that
    background / picture,  which is exactly Divide. */
-#mantis {
+ #mantis {
     position: absolute;
     height: 120vh;          /* a bit taller than the screen */
     width: auto;
@@ -224,9 +285,10 @@ body:not(.intro-on) #intro-spacer {
 .article img {
     display: block;
     width: 100%;
-    max-width: 720px;   /* don't stretch small screenshots across a huge screen */
+    max-width: 640px;   /* don't stretch small screenshots across a huge screen */
     height: auto;
-    margin: 0 0 1em 0;
+    margin: auto;
+    padding: 0 0 1em 0;
 }
 
 /* A long quotation (the Marx quote in issue 1) */
@@ -287,7 +349,7 @@ body:not(.intro-on) #intro-spacer {
     }
 
     /* banners use the full width on a phone */
-    .banner-wrap img {
+    .banner-frame {
         width: 100%;
     }
 }
@@ -300,7 +362,15 @@ body:not(.intro-on) #intro-spacer {
         max-height: none;     /* no longer squashed to 0 */
         transition: none;
     }
-    .banner-wrap img {
+    .banner-frame {
         margin: 4px 0;
     }
 }
+
+/* ---------- Kit subscribe form ----------
+   The form is loaded from Kit, so we can only restyle it from out here.
+   Kit's own styles cap it at 700px wide; !important is needed to win against them. */
+.formkit-form[data-uid="328c15b38f"] {
+    max-width: 900px !important;
+}
+
