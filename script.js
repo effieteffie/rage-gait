@@ -515,6 +515,25 @@ function startIntro() {
         requestAnimationFrame(draw);
     }
 
+    // ---- The logo that travels to the corner ----
+    // Changing a text's font-size, top and left on every scroll event makes the browser lay the text out
+    // and redraw its letters at a new size every frame. That is fine on a computer but choppy on a phone.
+    // So while you scroll we keep the font-size fixed (the big starting size) and only change `transform`
+    // (move + scale), which the browser can do on the graphics chip without redrawing any letters.
+    // When the logo has arrived, we switch ONCE to its real final size, so it ends up perfectly sharp.
+    let titleMode = null;     // "scaled" while travelling, "final" once it has arrived
+    let startSize = 0;        // the big font-size it starts with
+    let titleW = 0;           // how wide and tall the logo is at that starting size
+    let titleH = 0;
+
+    function setupTitle() {
+        startSize = Math.min(160, Math.max(48, window.innerWidth * 0.1));
+        floatTitle.style.fontSize = startSize + "px";
+        titleW = floatTitle.offsetWidth;
+        titleH = floatTitle.offsetHeight;
+        titleMode = "scaled";
+    }
+
     // Runs on every scroll. p is how far through the intro we are: 0 = top, 1 = one screen down.
     function updateIntro() {
         let p = Math.min(Math.max(window.scrollY / window.innerHeight, 0), 1);
@@ -530,12 +549,24 @@ function startIntro() {
         }
 
         // The title: from the middle of the screen (big) to the top-left corner (small)
-        let startSize = Math.min(160, Math.max(48, window.innerWidth * 0.1));
-        floatTitle.style.fontSize = lerp(startSize, endSize, p) + "px";
-        floatTitle.style.left = lerp(window.innerWidth / 2, corner, p) + "px";
-        floatTitle.style.top = lerp(window.innerHeight / 2, corner, p) + "px";
-        let pull = -50 * (1 - p); // -50% centers it on its own middle; 0% at the corner
-        floatTitle.style.transform = "translate(" + pull + "%, " + pull + "%)";
+        if (p >= 0.99) {
+            // arrived: switch to the real final size (sharp text) and sit exactly in the corner
+            if (titleMode !== "final") {
+                floatTitle.style.fontSize = endSize + "px";
+                titleMode = "final";
+            }
+            floatTitle.style.transform = "translate(" + corner + "px, " + corner + "px)";
+        } else {
+            if (titleMode !== "scaled") {
+                setupTitle();   // scrolled back up: go back to the big size
+            }
+            // scale goes from 1 (big) down to the final size / the big size; the box's top-left corner
+            // travels from where it sits when centered to the corner of the screen
+            let scale = lerp(1, endSize / startSize, p);
+            let x = lerp((window.innerWidth - titleW) / 2, corner, p);
+            let y = lerp((window.innerHeight - titleH) / 2, corner, p);
+            floatTitle.style.transform = "translate(" + x + "px, " + y + "px) scale(" + scale + ")";
+        }
 
         // Only clickable once it has arrived in the corner (0.99 instead of 1 leaves a little room for rounding)
         floatTitle.style.pointerEvents = p >= 0.99 ? "auto" : "none";
@@ -548,6 +579,7 @@ function startIntro() {
     }
 
     setupCanvas();
+    setupTitle();
     updateIntro();
     window.addEventListener("scroll", updateIntro);
 
@@ -559,6 +591,7 @@ function startIntro() {
     });
     window.addEventListener("resize", function () {
         setupCanvas();
+        setupTitle();
         updateIntro();
     });
 }

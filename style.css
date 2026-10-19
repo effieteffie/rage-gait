@@ -276,9 +276,12 @@ body.intro-on .site-header .site-title {
 #float-title {
     position: fixed;
     z-index: 20;            /* above the intro layer and the header */
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;  /* script.js moves and scales it around its top-left corner */
+    /* until script.js takes over, sit in the middle of the screen (a % here means "of its own size") */
+    transform: translate(calc(50vw - 50%), calc(50vh - 50%));
+    will-change: transform; /* a hint: it moves and scales as you scroll, so give it its own layer */
     white-space: nowrap;
     pointer-events: none;   /* can't be hovered or clicked while it's travelling; JS switches it on at the end */
 }
