@@ -2,6 +2,7 @@
 // Newest issue first, since the archive shows them in this order.
 //   wordCount: the words in the article body (not the works cited), counted from the Kit post
 //   banner:    a 1200x400 image shown when you hover the row
+//   threshold: 0 to 1, how bright a banner pixel must be to turn white (higher = more black)
 //   url:       the issue's page; the title becomes a link once this is set
 const issues = [
     {
@@ -10,6 +11,7 @@ const issues = [
         date: "September 25",
         wordCount: 1481,
         banner: "banners/issue-06.jpg",
+        threshold: 0.76,
         url: "issues/issue-06.html"
     },
     {
@@ -18,6 +20,7 @@ const issues = [
         date: "September 18",
         wordCount: 1725,
         banner: "banners/issue-05.jpeg",
+        threshold: 0.38,
         url: "issues/issue-05.html"
     },
     {
@@ -26,6 +29,7 @@ const issues = [
         date: "September 11",
         wordCount: 1321,
         banner: "banners/issue-04.jpeg",
+        threshold: 0.5,
         url: "issues/issue-04.html"
     },
     {
@@ -34,6 +38,7 @@ const issues = [
         date: "September 4",
         wordCount: 1616,
         banner: "banners/issue-03.jpeg",
+        threshold: 0.42,
         url: "issues/issue-03.html"
     },
     {
@@ -42,6 +47,7 @@ const issues = [
         date: "August 28",
         wordCount: 1711,
         banner: "banners/issue-02.jpeg",
+        threshold: 0.45,
         url: "issues/issue-02.html"
     },
     {
@@ -50,6 +56,7 @@ const issues = [
         date: "August 21",
         wordCount: 1229,
         banner: "banners/issue-01.jpg",
+        threshold: 0.5,
         url: "issues/issue-01.html"
     }
 ];
