@@ -230,6 +230,8 @@ let minClusters = 5;          // never fewer than this, even on a small window, 
 let letterStep = 1.5;         // distance from one letter to the next in a column (x the text size)
 let columnStep = 1.9;         // distance from one column to the next (x the text size)
 let maxStagger = 2.5;         // how many letters lower a column can start than the top of the cluster
+let smallScreenScale = 0.6;      // on a phone, every letter is this much of its normal size
+let bitmapScale = 1;             // how many real pixels per CSS pixel the clusters are drawn with (set in setupCanvas)
 let farSize = 10;             // text size of the farthest clusters (px)
 let nearSize = 26;            // text size of the nearest clusters (px)
 let farSpeed = 0.25;          // far clusters fall at 0.25 x the normal speed
@@ -250,7 +252,8 @@ function lerp(a, b, p) {
 // Makes one cluster of text at a random place, with a random depth.
 function makeCluster(w, h) {
     let depth = Math.random(); // 0 = far away, 1 = right in front of you
-    let size = lerp(farSize, nearSize, depth);
+    let scale = window.innerWidth <= 800 ? smallScreenScale : 1;   // smaller letters on a phone
+    let size = lerp(farSize, nearSize, depth) * scale;
     let words = phrases[Math.floor(Math.random() * phrases.length)];
 
     // Every word is a column. Each column starts a random amount lower than the top,
@@ -264,10 +267,37 @@ function makeCluster(w, h) {
     }
 
     let width = size + (words.length - 1) * columnStep * size;
+    let height = rows * letterStep * size;
+
+    // Draw the whole cluster ONCE onto a small canvas of its own. After that, every frame only has to
+    // COPY this picture to a new position, which is far cheaper than drawing every letter again
+    // (drawing text is slow, and a phone is slower at it than a computer).
+    let bitmap = document.createElement("canvas");
+    bitmap.width = Math.ceil(width * bitmapScale);
+    bitmap.height = Math.ceil(height * bitmapScale);
+    let bctx = bitmap.getContext("2d");
+    bctx.scale(bitmapScale, bitmapScale);
+    bctx.font = size + "px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+    bctx.textAlign = "center";
+    bctx.textBaseline = "middle";
+    bctx.fillStyle = "black";
+    for (let j = 0; j < columns.length; j++) {
+        let column = columns[j];
+        let x = size / 2 + j * columnStep * size;   // the middle of this column, inside the picture
+        for (let k = 0; k < column.text.length; k++) {
+            let letter = column.text[k];
+            if (letter !== " ") {
+                bctx.fillText(letter, x, (column.offset + k + 0.5) * letterStep * size);
+            }
+        }
+    }
+
     return {
         x: Math.random() * Math.max(w - width, 0),             // left edge
-        y: Math.random() * (h + rows * letterStep * size) - rows * letterStep * size, // top edge
-        height: rows * letterStep * size,
+        y: Math.random() * (h + height) - height,              // top edge
+        width: width,
+        height: height,
+        bitmap: bitmap,
         columns: columns,
         depth: depth,
         size: size,                                   // near = big
@@ -294,6 +324,18 @@ function startIntro() {
         spacer.remove();
         document.body.classList.remove("intro-on");
         return;
+    }
+
+    // ---- Test switches, for finding out what makes the intro slow on a phone ----
+    // Add one to the address (open it in a NEW tab, the intro only plays once per tab):
+    //   ?nochars    no falling text      ?nomantis   no mantis ghost      ?nobanners   no banners in the archive
+    // They can be combined, like  ?nochars&nomantis . Safe to delete once the lag is solved.
+    let testSwitches = new URLSearchParams(window.location.search);
+    if (testSwitches.has("nomantis")) {
+        intro.classList.add("no-mantis");           // style.css hides the mantis for this class
+    }
+    if (testSwitches.has("nobanners")) {
+        document.body.classList.add("no-banners");  // style.css hides the banners for this class
     }
 
     // Browsers remember your scroll position and put you back there on reload.
@@ -384,7 +426,8 @@ function startIntro() {
             ctx.fillStyle = "black";
         });
 
-        let count = Math.max(minClusters, Math.round((w * h) / areaPerCluster));
+        bitmapScale = dpr;   // the cluster pictures are made as sharp as the canvas they are copied onto
+        let count = testSwitches.has("nochars") ? 0 : Math.max(minClusters, Math.round((w * h) / areaPerCluster));
         clusters = [];
         for (let i = 0; i < count; i++) {
             clusters.push(makeCluster(w, h));
@@ -394,8 +437,17 @@ function startIntro() {
     }
 
     // draw() runs once per frame (about 60 times a second), like draw() in p5
+    // A phone draws about 30 frames a second instead of 60: half the work, and slowly falling text still looks smooth.
+    let limitFrameRate = window.matchMedia("(hover: none)").matches;
+
     function draw(now) {
         if (!running) return;
+
+        // too soon since the last frame we drew? skip this one (lastTime is only updated when we do draw)
+        if (limitFrameRate && now - lastTime < 30) {
+            requestAnimationFrame(draw);
+            return;
+        }
 
         // time since the last frame, in seconds (capped so a paused tab doesn't jump)
         let dt = Math.min((now - lastTime) / 1000, 0.1);
@@ -438,22 +490,12 @@ function startIntro() {
                 respawned = true;
             }
 
-            // far clusters go on the back canvas (behind the mantis), near ones on the front one
-            let ctx = c.depth < mantisDepth ? farCtx : nearCtx;
-            ctx.globalAlpha = c.alpha;
-            ctx.font = c.size + "px 'Helvetica Neue', Helvetica, Arial, sans-serif";
-
-            // draw every column, letter by letter
-            for (let j = 0; j < c.columns.length; j++) {
-                let column = c.columns[j];
-                let x = c.x + c.size / 2 + j * columnStep * c.size; // the middle of this column
-                for (let k = 0; k < column.text.length; k++) {
-                    let letter = column.text[k];
-                    let y = c.y + (column.offset + k + 0.5) * letterStep * c.size;
-                    if (letter !== " " && y > -c.size && y < h + c.size) {
-                        ctx.fillText(letter, x, y);
-                    }
-                }
+            // far clusters go on the back canvas (behind the mantis), near ones on the front one.
+            // We only COPY the cluster's ready-made picture, and only if it is on screen.
+            if (c.y < h && c.y + c.height > 0) {
+                let ctx = c.depth < mantisDepth ? farCtx : nearCtx;
+                ctx.globalAlpha = c.alpha;
+                ctx.drawImage(c.bitmap, c.x, c.y, c.width, c.height);
             }
         }
         // new clusters got a new random depth, so put the list back in far-to-near order
