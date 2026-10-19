@@ -254,6 +254,13 @@ body.intro-on .site-header .site-title {
     pointer-events: none;
     user-select: none;
 }
+/* The same ghost, "baked" by script.js: the Divide blend was worked out once and the result is
+   already in the pixels, so the browser doesn't redo it on every frame (that was slow on phones). */
+#mantis.baked {
+    filter: none;
+    mix-blend-mode: normal;
+    opacity: 1;
+}
 #intro-hint {
     position: absolute;
     bottom: var(--gap);
@@ -346,6 +353,15 @@ body:not(.intro-on) #intro-spacer {
     }
     .col-number::before {
         content: "issue ";      /* ::before adds text in front of an element, here "issue " before the 6 */
+    }
+
+    /* the mantis: on a tall, narrow screen, size it by its WIDTH. By height it would be wider than
+       the screen, and its head (on the right of the picture) would be cut off. */
+    #mantis {
+        height: auto;
+        width: 120vw;
+        left: -10vw;
+        bottom: -5vh;
     }
 
     /* banners use the full width on a phone */

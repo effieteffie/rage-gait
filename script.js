@@ -8,11 +8,38 @@
 let bannerBlockStart = 60;   // at the start, the banner is made of blocks this wide (its picture is 1200 wide)
 let bannerSharpenMs = 1500;  // the blocks shrink to nothing over this many milliseconds
 
+// On touch screens the banners take turns, from the latest issue to the earliest, so the page
+// seems to reveal itself over time instead of everything happening at once. Each one plays once.
+let bannerGapMs = 900;       // time between one banner starting and the next one starting
+let bannerWaiting = [];      // banners that are on screen and waiting for their turn
+let bannerTimer = null;      // set while we're in the pause after a banner started
+
+// true on pages without the intro, and once you've scrolled all the way through the intro
+function introIsOver() {
+    let body = document.body;
+    return !body.classList.contains("intro-on") || body.classList.contains("intro-done");
+}
+
+// Starts the next waiting banner (if it's allowed to), then waits a moment before the one after.
+function runBannerQueue() {
+    if (bannerTimer || bannerWaiting.length === 0 || !introIsOver()) {
+        return;
+    }
+    // a smaller order number means a later issue (issue 6 is order 0), so it goes first
+    bannerWaiting.sort(function (a, b) { return a.order - b.order; });
+    bannerWaiting.shift().start();
+    bannerTimer = setTimeout(function () {
+        bannerTimer = null;
+        runBannerQueue();
+    }, bannerGapMs);
+}
+
 // Gives one banner its animation.
 //   row    the table row the banner belongs to
 //   canvas the black-and-white copy, which we draw ourselves
 //   img    the color copy
-function setupBanner(row, canvas, img) {
+//   order  0 for the latest issue, 1 for the one before, and so on
+function setupBanner(row, canvas, img, order) {
     let ctx = canvas.getContext("2d");               // the "pen" we draw with, like in p5
     let small = document.createElement("canvas");    // a tiny canvas, used to shrink the picture into blocks
     let smallCtx = small.getContext("2d");
@@ -75,16 +102,20 @@ function setupBanner(row, canvas, img) {
     }
 
     if (window.matchMedia("(hover: none)").matches) {
-        // A touch screen has no hover: play when the row scrolls into view, and reset when it leaves.
-        new IntersectionObserver(function (entries) {
+        // A touch screen has no hover. Each banner plays ONCE, the first time it is mostly on
+        // screen, and the banners take turns from the latest issue to the earliest (runBannerQueue).
+        let observer = new IntersectionObserver(function (entries) {
             entries.forEach(function (entry) {
-                if (entry.intersectionRatio >= 0.6) {
-                    start();
-                } else if (!entry.isIntersecting) {
-                    stop();
+                if (entry.intersectionRatio >= 0.5) {
+                    observer.unobserve(row);   // only the first time
+                    bannerWaiting.push({ order: order, start: start });
+                    // wait a moment: banners that appear together are reported one after the other,
+                    // and we want all of them in the line-up before choosing who goes first
+                    setTimeout(runBannerQueue, 150);
                 }
             });
-        }, { threshold: [0, 0.6] }).observe(row);
+        }, { threshold: [0.5] });
+        observer.observe(row);
     } else {
         row.addEventListener("mouseenter", start);
         row.addEventListener("mouseleave", stop);
@@ -95,7 +126,7 @@ function setupBanner(row, canvas, img) {
 // banner is an image path (or nothing); altText describes the image.
 // url is the issue's page (or nothing): if given, the title becomes a link.
 // threshold (optional) is how bright a banner pixel must be to turn white, from 0 to 1.
-function makeRow(cells, banner, altText, url, threshold) {
+function makeRow(cells, banner, altText, url, threshold, order) {
     // like p5's createDiv(): make a new empty <div>
     let row = document.createElement("div");
     row.className = "row grid";
@@ -147,7 +178,7 @@ function makeRow(cells, banner, altText, url, threshold) {
         wrap.appendChild(frame);
         row.appendChild(wrap);
 
-        setupBanner(row, canvas, img);
+        setupBanner(row, canvas, img, order);
     }
 
     return row; // hand the finished row back to whoever called us
@@ -168,7 +199,8 @@ function buildTable() {
             issue.banner,
             issue.title,
             issue.url, // undefined if the issue has no url: that's fine
-            issue.threshold
+            issue.threshold,
+            i   // 0 for the latest issue, 1 for the next, ...
         );
         archive.appendChild(row);
     }
@@ -279,6 +311,53 @@ function startIntro() {
     let scrollSpeed = 0;            // how fast the page is being scrolled (px per second, down = positive)
     let lastScrollY = 0;
 
+    // The mantis ghost is made with a "Divide" blend, which the browser would redo on every
+    // frame (slow, especially on phones). Here we do the same maths ONCE, pixel by pixel, and put
+    // the finished ghost in place of the picture. If the browser won't let us read the picture's
+    // pixels (for example when the page is opened straight from a file), we keep the CSS version.
+    function bakeMantis() {
+        try {
+            let scale = Math.min(1, 900 / mantis.naturalHeight);   // a faint ghost doesn't need every pixel
+            let c = document.createElement("canvas");
+            c.width = Math.round(mantis.naturalWidth * scale);
+            c.height = Math.round(mantis.naturalHeight * scale);
+            let cx = c.getContext("2d");
+            cx.drawImage(mantis, 0, 0, c.width, c.height);
+            let pixels = cx.getImageData(0, 0, c.width, c.height);   // can fail: that's what the try is for
+
+            let bg = getComputedStyle(intro).backgroundColor.match(/[\d.]+/g);   // "rgb(234, 174, 211)" -> 234, 174, 211
+            if (!bg || bg.length < 3) {
+                throw new Error("unknown background color");
+            }
+            let ghost = parseFloat(getComputedStyle(mantis).opacity);   // the ghost strength from the CSS
+
+            let d = pixels.data;   // red, green, blue, alpha of every pixel, one after the other
+            for (let i = 0; i < d.length; i += 4) {
+                let alpha = d[i + 3] / 255;
+                for (let k = 0; k < 3; k++) {
+                    let picture = d[i + k] / 255;
+                    // Divide: background / picture (and never more than 1)
+                    let result = picture <= 0 ? 1 : Math.min(1, (bg[k] / 255) / picture);
+                    d[i + k] = Math.round(result * 255);
+                }
+                d[i + 3] = Math.round(alpha * ghost * 255);   // the ghost strength becomes see-through-ness
+            }
+            cx.putImageData(pixels, 0, 0);
+
+            c.id = "mantis";
+            c.className = "baked";   // style.css turns the live blend off for this one
+            mantis.replaceWith(c);
+            mantis = c;              // updateIntro() moves this one as you scroll
+        } catch (e) {
+            // keep the plain picture with its CSS blend
+        }
+    }
+    if (mantis.complete && mantis.naturalWidth > 0) {
+        bakeMantis();
+    } else {
+        mantis.addEventListener("load", bakeMantis);
+    }
+
     // Where the title ends up: the same size as the page's normal text, and the same gap from
     // the corner as --gap. We read both from the CSS, so changing font-size or --gap there
     // changes this too, with nothing to update here.
@@ -290,7 +369,9 @@ function startIntro() {
     function setupCanvas() {
         w = window.innerWidth;
         h = window.innerHeight;
-        let dpr = window.devicePixelRatio || 1;
+        // dpr = how many real pixels make up one CSS pixel (3 on many phones). More pixels look
+        // sharper but take much longer to draw, so we cap it: this is a moving, faint background.
+        let dpr = Math.min(window.devicePixelRatio || 1, window.matchMedia("(hover: none)").matches ? 1.5 : 2);
         // do the same setup for both canvases
         [[nearCanvas, nearCtx], [farCanvas, farCtx]].forEach(function (pair) {
             let canvas = pair[0];
@@ -419,6 +500,9 @@ function startIntro() {
 
         // Same moment: tell the CSS that the intro is finished (or not, if you scrolled back up)
         document.body.classList.toggle("intro-done", p >= 0.99);
+        if (p >= 0.99) {
+            runBannerQueue();   // banners may have been waiting for the intro to finish
+        }
     }
 
     setupCanvas();
