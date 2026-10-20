@@ -226,7 +226,14 @@ body.intro-on .site-header .site-title {
 /* A full-screen layer on top of everything. It never blocks clicks (pointer-events: none). */
 #intro {
     position: fixed;
-    inset: 0;               /* top, right, bottom and left all 0 = covers the screen */
+    /* Not "inset: 0" (= exactly the visible screen): on iPhones that box gets taller and shorter
+       every frame while Safari's toolbar slides, and the canvases inside would be resized with it.
+       100vh is the tallest the screen gets and never changes, so the layer stays the same size. */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
     z-index: 10;            /* higher number = drawn on top */
     background: var(--white);
     pointer-events: none;
