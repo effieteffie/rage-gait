@@ -334,6 +334,10 @@ function startIntro() {
     let nearCtx = nearCanvas.getContext("2d"); // a ctx is the "pen" we draw with: one per canvas
     let farCtx = farCanvas.getContext("2d");
     let w, h;
+    // The height we use for the whole intro. window.innerHeight changes a little on every frame
+    // while Safari's toolbar slides away, which made the logo jump around. The spacer is 100vh
+    // (the tallest the screen gets), and that number never changes mid-scroll.
+    let stableH = Math.max(window.innerHeight, spacer.offsetHeight);
     let clusters = [];              // the list of all falling clusters of text
     let lastTime = 0;
     let running = false;
@@ -398,7 +402,8 @@ function startIntro() {
     // dpr makes it sharp on high-resolution (retina) screens.
     function setupCanvas() {
         w = window.innerWidth;
-        h = window.innerHeight;
+        stableH = Math.max(window.innerHeight, spacer.offsetHeight);
+        h = stableH;
         // dpr = how many real pixels make up one CSS pixel (3 on many phones). More pixels look
         // sharper but take much longer to draw, so we cap it: this is a moving, faint background.
         let dpr = Math.min(window.devicePixelRatio || 1, window.matchMedia("(hover: none)").matches ? 1.5 : 2);
@@ -524,7 +529,7 @@ function startIntro() {
 
     // Runs on every scroll. p is how far through the intro we are: 0 = top, 1 = one screen down.
     function updateIntro() {
-        let p = Math.min(Math.max(window.scrollY / window.innerHeight, 0), 1);
+        let p = Math.min(Math.max(window.scrollY / stableH, 0), 1);
 
         intro.style.opacity = 1 - p; // the characters fade as you scroll
         mantis.style.transform = "translateY(" + (-12 * p) + "vh)"; // the mantis drifts up slowly
@@ -552,7 +557,7 @@ function startIntro() {
             // travels from where it sits when centered to the corner of the screen
             let scale = lerp(1, endSize / startSize, p);
             let x = lerp((window.innerWidth - titleW) / 2, corner, p);
-            let y = lerp((window.innerHeight - titleH) / 2, corner, p);
+            let y = lerp((stableH - titleH) / 2, corner, p);
             floatTitle.style.transform = "translate(" + x + "px, " + y + "px) scale(" + scale + ")";
         }
 
