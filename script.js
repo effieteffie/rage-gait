@@ -525,39 +525,14 @@ function startIntro() {
         titleW = floatTitle.offsetWidth;
         titleH = floatTitle.offsetHeight;
         titleMode = "scaled";
-        setNativeVars();
-    }
-
-    // ---- Letting the browser do the travelling (scroll-driven CSS animation) ----
-    // Moving the logo from JavaScript always arrives a little late on iPhones, because Safari scrolls
-    // the page first and only then runs our code. A CSS animation tied to the scroll position
-    // (animation-timeline: scroll()) is run by the browser itself, in step with the scrolling.
-    // JavaScript only hands it the start and end numbers, below, once, not on every scroll.
-    // Browsers that don't know animation-timeline keep using the JavaScript way further down.
-    let native = window.CSS && CSS.supports("animation-timeline: scroll()");
-    if (native) {
-        document.documentElement.classList.add("native-intro");
-    }
-    function setNativeVars() {
-        if (!native) return;
-        let root = document.documentElement.style;
-        root.setProperty("--intro-h", stableH + "px");                              // scrolling this far = the end
-        root.setProperty("--logo-x0", (window.innerWidth - titleW) / 2 + "px");    // start: centered
-        root.setProperty("--logo-y0", (stableH - titleH) / 2 + "px");
-        root.setProperty("--logo-x1", corner + "px");                               // end: the corner
-        root.setProperty("--logo-y1", corner + "px");
-        root.setProperty("--logo-s1", endSize / startSize);                         // end: the normal text size
-        root.setProperty("--logo-end-size", endSize + "px");
     }
 
     // Runs on every scroll. p is how far through the intro we are: 0 = top, 1 = one screen down.
     function updateIntro() {
         let p = Math.min(Math.max(window.scrollY / stableH, 0), 1);
 
-        if (!native) {
-            intro.style.opacity = 1 - p; // the characters fade as you scroll
-            mantis.style.transform = "translateY(" + (-12 * p) + "vh)"; // the mantis drifts up slowly
-        }
+        intro.style.opacity = 1 - p; // the characters fade as you scroll
+        mantis.style.transform = "translateY(" + (-12 * p) + "vh)"; // the mantis drifts up slowly
 
         // no point drawing once it's invisible; start again if you scroll back up
         if (p >= 1) {
@@ -567,9 +542,7 @@ function startIntro() {
         }
 
         // The title: from the middle of the screen (big) to the top-left corner (small)
-        if (native) {
-            // the CSS animation does the travelling (see style.css); nothing to do here
-        } else if (p >= 0.99) {
+        if (p >= 0.99) {
             // arrived: switch to the real final size (sharp text) and sit exactly in the corner
             if (titleMode !== "final") {
                 floatTitle.style.fontSize = endSize + "px";
@@ -602,23 +575,6 @@ function startIntro() {
     setupTitle();
     updateIntro();
     window.addEventListener("scroll", updateIntro);
-
-    // On iPhones Safari can deliver "scroll" late while its toolbar slides, so the logo falls behind
-    // the page. visualViewport reports the visible area's changes, and a check once per frame
-    // (requestAnimationFrame) catches anything the events miss. updateIntro is cheap, so we
-    // only redo it when scrollY has actually changed.
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener("scroll", updateIntro);
-    }
-    let lastSeenY = -1;
-    function watchScroll() {
-        if (window.scrollY !== lastSeenY) {
-            lastSeenY = window.scrollY;
-            updateIntro();
-        }
-        requestAnimationFrame(watchScroll);
-    }
-    requestAnimationFrame(watchScroll);
 
     // Some browsers restore the old scroll position only after the page has finished loading,
     // so scroll to the top once more at that moment.
