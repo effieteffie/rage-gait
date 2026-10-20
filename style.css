@@ -154,6 +154,7 @@ a[data-formkit-toggle] {
 /* Issue pages: full-width text */
 .article {
     font-size: 24px;
+    background-color: rgb(254, 192, 229);
     line-height: 1.15;
     max-width: var(--article-width);   /* never wider than this, so lines stay a comfortable length */
     margin-left: auto;                 /* "auto" on both sides splits the leftover space evenly: */
