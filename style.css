@@ -395,12 +395,3 @@ body:not(.intro-on) #intro-spacer {
 .formkit-form[data-uid="328c15b38f"] {
     max-width: 900px !important;
 }
-
-/* ---------- Test switches (see script.js) ----------
-   Only used to find out what slows the intro down on a phone. Safe to delete. */
-#intro.no-mantis #mantis {
-    display: none;
-}
-body.no-banners .banner-wrap {
-    display: none;
-}

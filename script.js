@@ -326,18 +326,6 @@ function startIntro() {
         return;
     }
 
-    // ---- Test switches, for finding out what makes the intro slow on a phone ----
-    // Add one to the address (open it in a NEW tab, the intro only plays once per tab):
-    //   ?nochars    no falling text      ?nomantis   no mantis ghost      ?nobanners   no banners in the archive
-    // They can be combined, like  ?nochars&nomantis . Safe to delete once the lag is solved.
-    let testSwitches = new URLSearchParams(window.location.search);
-    if (testSwitches.has("nomantis")) {
-        intro.classList.add("no-mantis");           // style.css hides the mantis for this class
-    }
-    if (testSwitches.has("nobanners")) {
-        document.body.classList.add("no-banners");  // style.css hides the banners for this class
-    }
-
     // Browsers remember your scroll position and put you back there on reload.
     // We always want to start at the top, so switch that off and scroll to the top.
     history.scrollRestoration = "manual";
@@ -427,7 +415,7 @@ function startIntro() {
         });
 
         bitmapScale = dpr;   // the cluster pictures are made as sharp as the canvas they are copied onto
-        let count = testSwitches.has("nochars") ? 0 : Math.max(minClusters, Math.round((w * h) / areaPerCluster));
+        let count = Math.max(minClusters, Math.round((w * h) / areaPerCluster));
         clusters = [];
         for (let i = 0; i < count; i++) {
             clusters.push(makeCluster(w, h));
@@ -589,7 +577,16 @@ function startIntro() {
         window.scrollTo(0, 0);
         updateIntro();
     });
+    // On phones, Safari's toolbar slides away and back while you scroll, and that fires "resize"
+    // with only the height changed. Rebuilding everything then makes the scroll stutter, so we
+    // only rebuild when the width changes (a real resize or a phone rotation).
+    let lastWidth = window.innerWidth;
     window.addEventListener("resize", function () {
+        if (window.innerWidth === lastWidth) {
+            updateIntro();
+            return;
+        }
+        lastWidth = window.innerWidth;
         setupCanvas();
         setupTitle();
         updateIntro();
