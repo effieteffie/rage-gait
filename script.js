@@ -576,6 +576,23 @@ function startIntro() {
     updateIntro();
     window.addEventListener("scroll", updateIntro);
 
+    // On iPhones Safari can deliver "scroll" late while its toolbar slides, so the logo falls behind
+    // the page. visualViewport reports the visible area's changes, and a check once per frame
+    // (requestAnimationFrame) catches anything the events miss. updateIntro is cheap, so we
+    // only redo it when scrollY has actually changed.
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener("scroll", updateIntro);
+    }
+    let lastSeenY = -1;
+    function watchScroll() {
+        if (window.scrollY !== lastSeenY) {
+            lastSeenY = window.scrollY;
+            updateIntro();
+        }
+        requestAnimationFrame(watchScroll);
+    }
+    requestAnimationFrame(watchScroll);
+
     // Some browsers restore the old scroll position only after the page has finished loading,
     // so scroll to the top once more at that moment.
     window.addEventListener("load", function () {
