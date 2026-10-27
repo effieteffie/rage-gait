@@ -55,10 +55,6 @@ a:hover {
 a[data-formkit-toggle] {
     justify-self: start;
     align-self: start;     /* top of the row, like the other links */
-    /* the highlight look: white text on black. Only "subscribe" has it. */
-    background: var(--black);
-    color: var(--white);
-    padding: 0 0.2em;
 }
 
 /* Archive table rows share the 6-column grid from the header */
@@ -145,7 +141,7 @@ a[data-formkit-toggle] {
     /* transition: what, how long it takes, speed curve, and a DELAY before it starts.
        Here: nothing happens for 4.5 seconds (the banner stays black and white), then the color
        fades in over 1.5 seconds, so it's fully color after 6 seconds of hovering. */
-    transition: opacity 1.5s ease-in-out 2s;
+    transition: opacity 1.5s ease-in-out 3.5s;
 }
 @media (prefers-reduced-motion: reduce) {
     .row.playing .banner-color {
@@ -186,9 +182,11 @@ a[data-formkit-toggle] {
     font-weight: 400;
 }
 
-/* Link style for the links inside articles: a slightly darker pink than the page, with an
-   underline. Change the color in one place: --link-color at the top of this file. */
-.article a {
+/* Link style: a slightly darker pink than the page, with an underline.
+   Used for the links inside articles and for "subscribe" in the header. Change the color
+   in one place: --link-color at the top of this file. */
+.article a,
+a[data-formkit-toggle] {
     color: var(--link-color);
     text-decoration: underline;
     text-underline-offset: 0.15em;   /* a little air between the letters and the line */
