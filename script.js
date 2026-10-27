@@ -239,11 +239,12 @@ let nearSpeed = 1.8;          // near clusters fall at 1.8 x the normal speed
 let farAlpha = 0.25;          // far clusters are faint (0 = invisible, 1 = solid)
 let fallSpeed = 90;           // the normal fall speed, in pixels per second
 
-// Two experiments for making the rain feel more alive. Open the page with ?rain=a or ?rain=b
-// (no ?rain= means the plain rain). Safe to delete once one is chosen.
-//   a = every cluster sways side to side and tilts a little, like paper falling through air
-//   b = the same, plus gusts of wind: the whole rain speeds up and slows down, and leans together
+// Two experiments for making the rain feel more like falling code. Open the page with ?rain=a or
+// ?rain=b (no ?rain= means the plain rain). Safe to delete once one is chosen.
+//   a = every column has a solid "head" letter at the bottom and a trail that fades out above it
+//   b = the same, plus letters that flicker into another character for a moment, like glitching code
 let rainMode = new URLSearchParams(window.location.search).get("rain");
+let glitchLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/:*+<>";
 
 // How the clusters react to scrolling
 let scrollPush = 0.6;    // bigger = scrolling changes the speed more
@@ -281,35 +282,8 @@ function makeCluster(w, h) {
     let bitmap = document.createElement("canvas");
     bitmap.width = Math.ceil(width * bitmapScale);
     bitmap.height = Math.ceil(height * bitmapScale);
-    let bctx = bitmap.getContext("2d");
-    bctx.scale(bitmapScale, bitmapScale);
-    bctx.font = size + "px 'Helvetica Neue', Helvetica, Arial, sans-serif";
-    bctx.textAlign = "center";
-    bctx.textBaseline = "middle";
-    bctx.fillStyle = "black";
-    for (let j = 0; j < columns.length; j++) {
-        let column = columns[j];
-        let x = size / 2 + j * columnStep * size;   // the middle of this column, inside the picture
-        for (let k = 0; k < column.text.length; k++) {
-            let letter = column.text[k];
-            if (letter !== " ") {
-                bctx.fillText(letter, x, (column.offset + k + 0.5) * letterStep * size);
-            }
-        }
-    }
 
-    // random sway and tilt for this cluster (only used when ?rain=a or ?rain=b)
-    let speedScale = lerp(farSpeed, nearSpeed, depth);        // near = fast
-    if (rainMode === "b") {
-        speedScale *= lerp(0.75, 1.25, Math.random());        // every cluster falls at its own pace
-    }
-
-    return {
-        swayAmp: size * lerp(0.4, 1.2, Math.random()),         // how far it drifts sideways (px)
-        swayFreq: lerp(0.5, 1.2, Math.random()),               // how fast (radians per second)
-        swayPhase: Math.random() * Math.PI * 2,                // where in the swing it starts, so they don't move together
-        tilt: lerp(0.03, 0.09, Math.random()),                 // the most it rotates (radians; 0.09 is about 5 degrees)
-        tiltPhase: Math.random() * Math.PI * 2,
+    let cluster = {
         x: Math.random() * Math.max(w - width, 0),             // left edge
         y: Math.random() * (h + height) - height,              // top edge
         width: width,
@@ -318,9 +292,44 @@ function makeCluster(w, h) {
         columns: columns,
         depth: depth,
         size: size,                                   // near = big
-        speedScale: speedScale,
-        alpha: lerp(farAlpha, 1, depth)               // near = solid, far = faint
+        speedScale: lerp(farSpeed, nearSpeed, depth), // near = fast
+        alpha: lerp(farAlpha, 1, depth),              // near = solid, far = faint
+        flicker: null                                 // a letter that is glitching right now (?rain=b), see draw()
     };
+    drawClusterBitmap(cluster);
+    return cluster;
+}
+
+// Draws every letter of a cluster onto its own little canvas. It is called once when the cluster
+// is made, and again (?rain=b only) each time a letter starts or stops flickering.
+function drawClusterBitmap(c) {
+    let bctx = c.bitmap.getContext("2d");
+    bctx.setTransform(1, 0, 0, 1, 0, 0);
+    bctx.clearRect(0, 0, c.bitmap.width, c.bitmap.height);
+    bctx.scale(bitmapScale, bitmapScale);
+    bctx.font = c.size + "px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+    bctx.textAlign = "center";
+    bctx.textBaseline = "middle";
+    bctx.fillStyle = "black";
+    for (let j = 0; j < c.columns.length; j++) {
+        let column = c.columns[j];
+        let x = c.size / 2 + j * columnStep * c.size;   // the middle of this column, inside the picture
+        let last = column.text.length - 1;
+        for (let k = 0; k <= last; k++) {
+            let letter = column.text[k];
+            if (letter === " ") continue;
+            if (c.flicker && c.flicker.column === j && c.flicker.letter === k) {
+                letter = c.flicker.character;   // this one is glitching: show another character
+            }
+            if (rainMode) {
+                // The column falls downward, so its LAST letter is the head: fully solid.
+                // The letters above it are its trail and get fainter the further up they are.
+                bctx.globalAlpha = k === last ? 1 : 0.12 + 0.6 * Math.pow(k / last, 1.5);
+            }
+            bctx.fillText(letter, x, (column.offset + k + 0.5) * letterStep * c.size);
+        }
+    }
+    bctx.globalAlpha = 1;
 }
 
 function startIntro() {
@@ -480,21 +489,12 @@ function startIntro() {
         nearCtx.clearRect(0, 0, w, h);
         farCtx.clearRect(0, 0, w, h);
         let respawned = false;
-
-        // seconds since the page opened, and (for ?rain=b) the gusts of wind
-        let t = now / 1000;
-        let gust = 1;   // 1 = normal fall speed; the wind makes it go between about 0.5 and 1.5
-        let wind = 0;   // how far the whole rain leans sideways right now (px)
-        if (rainMode === "b") {
-            gust = 1 + 0.5 * Math.sin(t * 0.6) * Math.sin(t * 0.17 + 1);
-            wind = 25 * Math.sin(t * 0.35);
-        }
         for (let i = 0; i < clusters.length; i++) {
             let c = clusters[i];
 
             // each cluster moves at the shared speed times its own depth factor
             // (this difference between near and far is what creates the parallax)
-            c.y += speed * c.speedScale * gust * dt;
+            c.y += speed * c.speedScale * dt;
 
             // fell completely off the bottom: come back in at the top as a brand new cluster
             if (c.y > h) {
@@ -509,22 +509,30 @@ function startIntro() {
                 respawned = true;
             }
 
+            // ?rain=b: now and then one letter of an on-screen cluster turns into another character
+            // for a split second, then goes back. Redrawing the little picture is cheap, and rare.
+            if (rainMode === "b" && c.y < h && c.y + c.height > 0) {
+                if (c.flicker && now > c.flicker.until) {
+                    c.flicker = null;
+                    drawClusterBitmap(c);
+                } else if (!c.flicker && Math.random() < 0.9 * dt) {
+                    let j = Math.floor(Math.random() * c.columns.length);
+                    c.flicker = {
+                        column: j,
+                        letter: Math.floor(Math.random() * c.columns[j].text.length),
+                        character: glitchLetters[Math.floor(Math.random() * glitchLetters.length)],
+                        until: now + 100 + Math.random() * 250   // milliseconds
+                    };
+                    drawClusterBitmap(c);
+                }
+            }
+
             // far clusters go on the back canvas (behind the mantis), near ones on the front one.
             // We only COPY the cluster's ready-made picture, and only if it is on screen.
             if (c.y < h && c.y + c.height > 0) {
                 let ctx = c.depth < mantisDepth ? farCtx : nearCtx;
                 ctx.globalAlpha = c.alpha;
-                if (rainMode) {
-                    let dx = Math.sin(t * c.swayFreq + c.swayPhase) * c.swayAmp + wind * c.speedScale;
-                    let angle = Math.sin(t * c.swayFreq * 0.8 + c.tiltPhase) * c.tilt;
-                    ctx.save();   // remember the pen's position, so the rotation only affects this cluster
-                    ctx.translate(c.x + dx + c.width / 2, c.y + c.height / 2);   // move to the middle of the cluster...
-                    ctx.rotate(angle);                                           // ...turn around that point...
-                    ctx.drawImage(c.bitmap, -c.width / 2, -c.height / 2, c.width, c.height);   // ...and draw it centered there
-                    ctx.restore();
-                } else {
-                    ctx.drawImage(c.bitmap, c.x, c.y, c.width, c.height);
-                }
+                ctx.drawImage(c.bitmap, c.x, c.y, c.width, c.height);
             }
         }
         // new clusters got a new random depth, so put the list back in far-to-near order
