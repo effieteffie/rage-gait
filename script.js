@@ -263,7 +263,9 @@ let fallSpeed = 90;           // the normal fall speed, in pixels per second
 // ?rain=b (no ?rain= means the plain rain). Safe to delete once one is chosen.
 //   a = every column has a solid "head" letter at the bottom and a trail that fades out above it
 //   b = the same, plus letters that flicker into another character for a moment, like glitching code
-let rainMode = new URLSearchParams(window.location.search).get("rain");
+// Version b (trails + glitch) is now the default. ?rain=a gives just the trails, ?rain=plain the old rain.
+let rainChoice = new URLSearchParams(window.location.search).get("rain");
+let rainMode = rainChoice === "plain" ? null : (rainChoice || "b");
 let glitchLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/:*+<>";
 
 // How the clusters react to scrolling
