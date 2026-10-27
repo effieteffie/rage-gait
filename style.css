@@ -83,6 +83,12 @@ a[data-formkit-toggle] {
     margin-top: 8px;
 }
 
+.highlight {
+  background: var(--black);   /* the highlight colour behind the text */
+    color: var(--white);        /* text colour on top of it */
+    padding: 0 0.2em;
+}
+
 /* On article pages (a header that is directly followed by an .article) the header keeps an
    empty band under its links. It has a solid background, so scrolling text disappears under
    the band before it can touch the links. :has() lets a rule look at what's around an element,
