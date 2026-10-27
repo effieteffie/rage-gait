@@ -684,9 +684,6 @@ function startIntro() {
             return;
         }
 
-        // Only clickable once it has arrived in the corner (0.99 instead of 1 leaves a little room for rounding)
-        floatTitle.style.pointerEvents = p >= 0.99 ? "auto" : "none";
-
         // Same moment: tell the CSS that the intro is finished (or not, if you scrolled back up)
         document.body.classList.toggle("intro-done", p >= 0.99);
         if (p >= 0.99) {
