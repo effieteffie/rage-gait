@@ -294,6 +294,41 @@ body.intro-on .site-header .site-title {
     pointer-events: none;   /* can't be hovered or clicked while it's travelling; JS switches it on at the end */
 }
 
+/* ---------- Scroll-driven version of the intro ----------
+   script.js adds the class "native-intro" to <html> when the browser supports
+   animation-timeline: scroll(). Then the browser plays these animations itself, tied to how far
+   the page has scrolled (0 to --intro-h), instead of script.js moving things on every scroll event.
+   script.js fills in the --logo-* numbers once (they depend on the screen size). */
+@keyframes logo-travel {
+    from { transform: translate(var(--logo-x0), var(--logo-y0)) scale(1); }
+    to   { transform: translate(var(--logo-x1), var(--logo-y1)) scale(var(--logo-s1)); }
+}
+@keyframes intro-fade {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+@keyframes mantis-drift {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-12vh); }
+}
+html.native-intro #float-title,
+html.native-intro #intro,
+html.native-intro #mantis {
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+    animation-timeline: scroll(root block);
+    animation-range: 0px var(--intro-h);
+}
+html.native-intro #float-title { animation-name: logo-travel; animation-duration: 1ms; }
+html.native-intro #intro { animation-name: intro-fade; animation-duration: 1ms; }
+html.native-intro #mantis { animation-name: mantis-drift; animation-duration: 1ms; }
+/* Arrived: stop the animation and show the logo at its real size, so the text is sharp */
+html.native-intro body.intro-done #float-title {
+    animation: none;
+    font-size: var(--logo-end-size) !important;
+    transform: translate(var(--logo-x1), var(--logo-y1));
+}
+
 /* When the intro is off, hide all of its pieces */
 body:not(.intro-on) #intro,
 body:not(.intro-on) #float-title,
