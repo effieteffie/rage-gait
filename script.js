@@ -551,7 +551,27 @@ function startIntro() {
     }
 
     // Runs on every scroll. p is how far through the intro we are: 0 = top, 1 = one screen down.
+    let introLocked = false;   // true once the intro has been removed for good (phones only)
+    let touchScreen = window.matchMedia("(hover: none)").matches;
+
+    // On phones the intro plays only once: when you have scrolled all the way through it, we take
+    // the intro pieces out of the page, so scrolling back up just shows the normal page.
+    function lockIntro() {
+        let spacerHeight = spacer.offsetHeight;
+        introLocked = true;
+        running = false;
+        intro.remove();
+        floatTitle.remove();
+        spacer.remove();
+        document.body.classList.remove("intro-on");   // the header's own logo shows again, in the same spot
+        // The spacer was one screen tall, so everything moved up by that much: scroll up by the
+        // same amount so that nothing seems to move.
+        window.scrollTo(0, Math.max(0, window.scrollY - spacerHeight));
+        runBannerQueue();
+    }
+
     function updateIntro() {
+        if (introLocked) return;
         let p = Math.min(Math.max(window.scrollY / stableH, 0), 1);
 
         if (!native) {
@@ -586,6 +606,12 @@ function startIntro() {
             let x = lerp((window.innerWidth - titleW) / 2, corner, p);
             let y = lerp((stableH - titleH) / 2, corner, p);
             floatTitle.style.transform = "translate(" + x + "px, " + y + "px) scale(" + scale + ")";
+        }
+
+        // the very end of the intro, on a phone: it won't play again
+        if (touchScreen && p >= 0.99) {
+            lockIntro();
+            return;
         }
 
         // Only clickable once it has arrived in the corner (0.99 instead of 1 leaves a little room for rounding)
@@ -623,6 +649,7 @@ function startIntro() {
     // Some browsers restore the old scroll position only after the page has finished loading,
     // so scroll to the top once more at that moment.
     window.addEventListener("load", function () {
+        if (introLocked) return;
         window.scrollTo(0, 0);
         updateIntro();
     });
@@ -631,6 +658,7 @@ function startIntro() {
     // only rebuild when the width changes (a real resize or a phone rotation).
     let lastWidth = window.innerWidth;
     window.addEventListener("resize", function () {
+        if (introLocked) return;
         if (window.innerWidth === lastWidth) {
             updateIntro();
             return;
