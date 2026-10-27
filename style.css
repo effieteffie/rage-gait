@@ -453,3 +453,25 @@ body:not(.intro-on) #intro-spacer {
 .formkit-form[data-uid="328c15b38f"] {
     max-width: 900px !important;
 }
+
+/* On a phone the pop-up is made smaller: Kit's own text is huge and its padding is wide, so the form
+   was taller than the screen. We shrink the heading, the padding and the picture at the top.
+   (!important is needed again, to win against Kit's styles.) */
+@media (max-width: 800px) {
+    .formkit-form[data-uid="328c15b38f"] .formkit-header {
+        font-size: 17px !important;
+        margin-bottom: 12px !important;
+    }
+    .formkit-form[data-uid="328c15b38f"] .formkit-header h2 {
+        font-size: 24px !important;
+        line-height: 1.15 !important;
+        margin: 0 !important;
+    }
+    .formkit-form[data-uid="328c15b38f"] .formkit-column {
+        padding: 20px !important;
+    }
+    .formkit-form[data-uid="328c15b38f"] .formkit-background {
+        height: 110px !important;
+        min-height: 110px !important;
+    }
+}
