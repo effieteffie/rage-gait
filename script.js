@@ -268,7 +268,7 @@ function makeCluster(w, h) {
     let columns = [];
     let rows = 0; // how many letters tall the whole cluster is
     for (let i = 0; i < words.length; i++) {
-        let offset = Math.random() * maxStagger;
+        let offset = rainMode ? 0 : Math.random() * maxStagger;   // ?rain=: all columns start level, so they fall as a straight block
         columns.push({ text: words[i], offset: offset });
         rows = Math.max(rows, offset + words[i].length);
     }
@@ -324,7 +324,7 @@ function drawClusterBitmap(c) {
             if (rainMode) {
                 // The column falls downward, so its LAST letter is the head: fully solid.
                 // The letters above it are its trail and get fainter the further up they are.
-                bctx.globalAlpha = k === last ? 1 : 0.12 + 0.6 * Math.pow(k / last, 1.5);
+                bctx.globalAlpha = k === last ? 1 : 0.3 + 0.5 * (k / last);
             }
             bctx.fillText(letter, x, (column.offset + k + 0.5) * letterStep * c.size);
         }
