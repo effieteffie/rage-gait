@@ -369,6 +369,11 @@ body:not(.intro-on) #intro-spacer {
    Seven columns don't fit on a phone, so the header uses three, and every issue becomes
    a little stack of lines instead of a table row. */
 @media (max-width: 800px) {
+    /* smaller text overall on a phone (the archive, the header links). The logo that flies to the
+       corner reads this size too, so it ends up matching. */
+    body {
+        font-size: 17px;
+    }
     /* smaller article text on a phone */
     .article {
         font-size: 18px;
