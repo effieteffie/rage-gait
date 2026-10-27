@@ -55,6 +55,10 @@ a:hover {
 a[data-formkit-toggle] {
     justify-self: start;
     align-self: start;     /* top of the row, like the other links */
+    /* the highlight look: white text on black. Only "subscribe" has it. */
+    background: var(--black);
+    color: var(--white);
+    padding: 0 0.2em;
 }
 
 /* Archive table rows share the 6-column grid from the header */
@@ -157,8 +161,8 @@ a[data-formkit-toggle] {
     max-width: var(--article-width);   /* never wider than this, so lines stay a comfortable length */
     margin-left: auto;                 /* "auto" on both sides splits the leftover space evenly: */
     margin-right: auto;                /* that centers the text and gives it margins */
-    outline: black dotted 2px;
-    outline-offset: -2px;
+   /* outline: black dotted 2px;
+    outline-offset: -2px; */
     padding: 0.5em 1em; 
 }
 .article h1 {
@@ -182,11 +186,9 @@ a[data-formkit-toggle] {
     font-weight: 400;
 }
 
-/* Link style: a slightly darker pink than the page, with an underline.
-   Used for the links inside articles and for "subscribe" in the header. Change the color
-   in one place: --link-color at the top of this file. */
-.article a,
-a[data-formkit-toggle] {
+/* Link style for the links inside articles: a slightly darker pink than the page, with an
+   underline. Change the color in one place: --link-color at the top of this file. */
+.article a {
     color: var(--link-color);
     text-decoration: underline;
     text-underline-offset: 0.15em;   /* a little air between the letters and the line */
