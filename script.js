@@ -13,7 +13,6 @@ let bannerSharpenMs = 1500;  // the blocks shrink to nothing over this many mill
 let bannerGapMs = 900;       // time between one banner starting and the next one starting
 let bannerWaiting = [];      // banners that are on screen and waiting for their turn
 let bannerTimer = null;      // set while we're in the pause after a banner started
-let interactiveAt = 0.8;     // once the opening animation has been scrolled this far (0 to 1), links and banners start working
 let bannerColorWaitMs = 4000; // after the last banner has finished sharpening, wait this long, then they all turn to color together
 let colorTimer = null;       // counts down to that moment; every banner that starts restarts it
 
@@ -32,10 +31,10 @@ function scheduleColor() {
     colorTimer = setTimeout(colorizeBanners, bannerSharpenMs + bannerColorWaitMs);
 }
 
-// true on pages without the intro, and once you've scrolled far enough through the intro (interactiveAt)
+// true on pages without the intro, and once you've scrolled all the way through the intro
 function introIsOver() {
     let body = document.body;
-    return !body.classList.contains("intro-on") || body.classList.contains("intro-interactive");
+    return !body.classList.contains("intro-on") || body.classList.contains("intro-done");
 }
 
 // Starts the next waiting banner (if it's allowed to), then waits a moment before the one after.
@@ -685,17 +684,14 @@ function startIntro() {
             return;
         }
 
-        // The logo, the header links and the banners start working at interactiveAt (80%), a little
-        // before the very end, so nobody waits for the last bit of the animation to click something.
-        let interactive = p >= interactiveAt;
-        floatTitle.style.pointerEvents = interactive ? "auto" : "none";
-        document.body.classList.toggle("intro-interactive", interactive);   // (style.css un-blocks the page with this)
-        if (interactive) {
-            runBannerQueue();   // banners may have been waiting for the intro
-        }
+        // Only clickable once it has arrived in the corner (0.99 instead of 1 leaves a little room for rounding)
+        floatTitle.style.pointerEvents = p >= 0.99 ? "auto" : "none";
 
-        // The very end (0.99 instead of 1 leaves a little room for rounding): the intro is finished.
+        // Same moment: tell the CSS that the intro is finished (or not, if you scrolled back up)
         document.body.classList.toggle("intro-done", p >= 0.99);
+        if (p >= 0.99) {
+            runBannerQueue();   // banners may have been waiting for the intro to finish
+        }
     }
 
     setupCanvas();

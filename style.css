@@ -208,11 +208,10 @@ body.intro-on {
     box-sizing: border-box;
 }
 
-/* While the intro is still travelling (the class "intro-interactive" isn't on <body> yet, which
-   script.js adds once you have scrolled about 80% through), the page underneath ignores the
-   mouse: no banners opening, no links, no hover fades. */
-body.intro-on:not(.intro-interactive) .site-header,
-body.intro-on:not(.intro-interactive) main {
+/* While the intro is still travelling (the class "intro-done" isn't on <body> yet), the page
+   underneath ignores the mouse: no banners opening, no links, no hover fades. */
+body.intro-on:not(.intro-done) .site-header,
+body.intro-on:not(.intro-done) main {
     pointer-events: none;
 }
 
