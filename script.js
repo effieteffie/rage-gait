@@ -551,10 +551,9 @@ function startIntro() {
     }
 
     // Runs on every scroll. p is how far through the intro we are: 0 = top, 1 = one screen down.
-    let introLocked = false;   // true once the intro has been removed for good (phones only)
-    let touchScreen = window.matchMedia("(hover: none)").matches;
+    let introLocked = false;   // true once the intro has been removed for good
 
-    // On phones the intro plays only once: when you have scrolled all the way through it, we take
+    // The intro plays only once: when you have scrolled all the way through it, we take
     // the intro pieces out of the page, so scrolling back up just shows the normal page.
     function lockIntro() {
         let spacerHeight = spacer.offsetHeight;
@@ -566,7 +565,12 @@ function startIntro() {
         document.body.classList.remove("intro-on");   // the header's own logo shows again, in the same spot
         // The spacer was one screen tall, so everything moved up by that much: scroll up by the
         // same amount so that nothing seems to move.
-        window.scrollTo(0, Math.max(0, window.scrollY - spacerHeight));
+        let newY = Math.max(0, window.scrollY - spacerHeight);
+        if (window.lenis) {
+            window.lenis.scrollTo(newY, { immediate: true, force: true });   // Lenis (smooth scrolling) keeps its own idea of the position, so tell it
+        } else {
+            window.scrollTo(0, newY);
+        }
         runBannerQueue();
     }
 
@@ -608,8 +612,8 @@ function startIntro() {
             floatTitle.style.transform = "translate(" + x + "px, " + y + "px) scale(" + scale + ")";
         }
 
-        // the very end of the intro, on a phone: it won't play again
-        if (touchScreen && p >= 0.99) {
+        // the very end of the intro: it won't play again
+        if (p >= 0.99) {
             lockIntro();
             return;
         }

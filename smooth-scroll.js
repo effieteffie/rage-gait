@@ -8,7 +8,7 @@
 // Phones (no hover) already scroll smoothly by themselves, and Lenis made the intro stutter
 // while Safari's toolbar shrinks, so on touch screens we leave it off.
 if (!window.matchMedia("(hover: none)").matches) {
-    let lenis = new Lenis({
+    window.lenis = new Lenis({   // on window so script.js can reach it
         autoRaf: true,   // Lenis runs its own animation loop, like requestAnimationFrame in p5
         // The Kit subscribe pop-up scrolls by itself when it is taller than the screen (on a phone).
         // Inside it, leave scrolling alone. prevent() gets the element under the mouse and answers
