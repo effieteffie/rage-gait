@@ -5,7 +5,7 @@
     --black: #4B2636;
     --white: #EAAED3;
     --yellow: #f4d31a; /* picked from the issue 6 banner */
-    --pink-dark: #c2185b; /* the dark pink the subscribe link pulses to */
+    --link-color: #a3185e; /* the color of links (the underlined ones) */
     --gap: 8px;
     --header-gap: 16px; /* empty band under the header on article pages (see .site-header:has) */
     --row-padding: 4px;
@@ -55,8 +55,6 @@ a:hover {
 a[data-formkit-toggle] {
     justify-self: start;
     align-self: start;     /* top of the row, like the other links */
-    border: 2px dotted var(--black);
-    padding: 0px;
 }
 
 /* Archive table rows share the 6-column grid from the header */
@@ -184,15 +182,14 @@ a[data-formkit-toggle] {
     font-weight: 400;
 }
 
-/* Highlight links: white text on black, like the SUPERSEDIA example */
-.article a {
-    background: var(--black);
-    color: var(--white);
-    padding: 0 0.2em;
-    /* without "clone", padding/background would only apply at the very start
-       and end of a link that wraps across lines */
-    box-decoration-break: clone;
-    -webkit-box-decoration-break: clone;
+/* Link style: a slightly darker pink than the page, with an underline.
+   Used for the links inside articles and for "subscribe" in the header. Change the color
+   in one place: --link-color at the top of this file. */
+.article a,
+a[data-formkit-toggle] {
+    color: var(--link-color);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;   /* a little air between the letters and the line */
 }
 
 /* ---------- Opening animation ---------- */
@@ -372,6 +369,11 @@ body:not(.intro-on) #intro-spacer {
    Seven columns don't fit on a phone, so the header uses three, and every issue becomes
    a little stack of lines instead of a table row. */
 @media (max-width: 800px) {
+    /* smaller article text on a phone */
+    .article {
+        font-size: 18px;
+    }
+
     /* the header: the logo gets a row of its own, then the 6 links fall into 2 rows of 3 */
     .grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
