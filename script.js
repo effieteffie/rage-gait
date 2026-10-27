@@ -239,6 +239,12 @@ let nearSpeed = 1.8;          // near clusters fall at 1.8 x the normal speed
 let farAlpha = 0.25;          // far clusters are faint (0 = invisible, 1 = solid)
 let fallSpeed = 90;           // the normal fall speed, in pixels per second
 
+// Two experiments for making the rain feel more alive. Open the page with ?rain=a or ?rain=b
+// (no ?rain= means the plain rain). Safe to delete once one is chosen.
+//   a = every cluster sways side to side and tilts a little, like paper falling through air
+//   b = the same, plus gusts of wind: the whole rain speeds up and slows down, and leans together
+let rainMode = new URLSearchParams(window.location.search).get("rain");
+
 // How the clusters react to scrolling
 let scrollPush = 0.6;    // bigger = scrolling changes the speed more
 let maxUpSpeed = 120;    // scrolling up moves them up, but never faster than this (px per second)
@@ -292,7 +298,18 @@ function makeCluster(w, h) {
         }
     }
 
+    // random sway and tilt for this cluster (only used when ?rain=a or ?rain=b)
+    let speedScale = lerp(farSpeed, nearSpeed, depth);        // near = fast
+    if (rainMode === "b") {
+        speedScale *= lerp(0.75, 1.25, Math.random());        // every cluster falls at its own pace
+    }
+
     return {
+        swayAmp: size * lerp(0.4, 1.2, Math.random()),         // how far it drifts sideways (px)
+        swayFreq: lerp(0.5, 1.2, Math.random()),               // how fast (radians per second)
+        swayPhase: Math.random() * Math.PI * 2,                // where in the swing it starts, so they don't move together
+        tilt: lerp(0.03, 0.09, Math.random()),                 // the most it rotates (radians; 0.09 is about 5 degrees)
+        tiltPhase: Math.random() * Math.PI * 2,
         x: Math.random() * Math.max(w - width, 0),             // left edge
         y: Math.random() * (h + height) - height,              // top edge
         width: width,
@@ -301,7 +318,7 @@ function makeCluster(w, h) {
         columns: columns,
         depth: depth,
         size: size,                                   // near = big
-        speedScale: lerp(farSpeed, nearSpeed, depth), // near = fast
+        speedScale: speedScale,
         alpha: lerp(farAlpha, 1, depth)               // near = solid, far = faint
     };
 }
@@ -463,12 +480,21 @@ function startIntro() {
         nearCtx.clearRect(0, 0, w, h);
         farCtx.clearRect(0, 0, w, h);
         let respawned = false;
+
+        // seconds since the page opened, and (for ?rain=b) the gusts of wind
+        let t = now / 1000;
+        let gust = 1;   // 1 = normal fall speed; the wind makes it go between about 0.5 and 1.5
+        let wind = 0;   // how far the whole rain leans sideways right now (px)
+        if (rainMode === "b") {
+            gust = 1 + 0.5 * Math.sin(t * 0.6) * Math.sin(t * 0.17 + 1);
+            wind = 25 * Math.sin(t * 0.35);
+        }
         for (let i = 0; i < clusters.length; i++) {
             let c = clusters[i];
 
             // each cluster moves at the shared speed times its own depth factor
             // (this difference between near and far is what creates the parallax)
-            c.y += speed * c.speedScale * dt;
+            c.y += speed * c.speedScale * gust * dt;
 
             // fell completely off the bottom: come back in at the top as a brand new cluster
             if (c.y > h) {
@@ -488,7 +514,17 @@ function startIntro() {
             if (c.y < h && c.y + c.height > 0) {
                 let ctx = c.depth < mantisDepth ? farCtx : nearCtx;
                 ctx.globalAlpha = c.alpha;
-                ctx.drawImage(c.bitmap, c.x, c.y, c.width, c.height);
+                if (rainMode) {
+                    let dx = Math.sin(t * c.swayFreq + c.swayPhase) * c.swayAmp + wind * c.speedScale;
+                    let angle = Math.sin(t * c.swayFreq * 0.8 + c.tiltPhase) * c.tilt;
+                    ctx.save();   // remember the pen's position, so the rotation only affects this cluster
+                    ctx.translate(c.x + dx + c.width / 2, c.y + c.height / 2);   // move to the middle of the cluster...
+                    ctx.rotate(angle);                                           // ...turn around that point...
+                    ctx.drawImage(c.bitmap, -c.width / 2, -c.height / 2, c.width, c.height);   // ...and draw it centered there
+                    ctx.restore();
+                } else {
+                    ctx.drawImage(c.bitmap, c.x, c.y, c.width, c.height);
+                }
             }
         }
         // new clusters got a new random depth, so put the list back in far-to-near order
