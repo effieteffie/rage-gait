@@ -470,8 +470,13 @@ body:not(.intro-on) #intro-spacer {
     .formkit-form[data-uid="328c15b38f"] .formkit-column {
         padding: 20px !important;
     }
+    /* The picture is almost square, but its box is wide and flat, so by default it is cropped.
+       "contain" fits the WHOLE picture inside the box instead (black bars appear at the sides). */
     .formkit-form[data-uid="328c15b38f"] .formkit-background {
-        height: 110px !important;
-        min-height: 110px !important;
+        height: 260px !important;
+        min-height: 260px !important;
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
     }
 }
