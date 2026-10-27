@@ -431,6 +431,15 @@ body:not(.intro-on) #intro-spacer {
     .banner-frame {
         margin: 4px 0;
     }
+    /* Banners stay black and white while they pixelate one after another. Later, script.js adds the
+       class "colored" to all of them at once, and the color fades in slowly. */
+    .row.playing .banner-color {
+        opacity: 0;
+    }
+    .row.colored .banner-color {
+        opacity: 1;
+        transition: opacity 3s ease-in-out;
+    }
 }
 
 /* ---------- Kit subscribe form ----------

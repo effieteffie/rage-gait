@@ -13,6 +13,23 @@ let bannerSharpenMs = 1500;  // the blocks shrink to nothing over this many mill
 let bannerGapMs = 900;       // time between one banner starting and the next one starting
 let bannerWaiting = [];      // banners that are on screen and waiting for their turn
 let bannerTimer = null;      // set while we're in the pause after a banner started
+let bannerColorWaitMs = 4000; // after the last banner has finished sharpening, wait this long, then they all turn to color together
+let colorTimer = null;       // counts down to that moment; every banner that starts restarts it
+
+// Touch screens: turns every banner that has played to color, all at the same time.
+// (The slow fade itself is in style.css: .row.colored .banner-color.)
+function colorizeBanners() {
+    document.querySelectorAll(".row.playing").forEach(function (row) {
+        row.classList.add("colored");
+    });
+}
+
+// Called each time a banner starts. The countdown always begins again, so it only ends once no new
+// banner has started for (sharpening time + wait) milliseconds, i.e. when all of them are done.
+function scheduleColor() {
+    clearTimeout(colorTimer);
+    colorTimer = setTimeout(colorizeBanners, bannerSharpenMs + bannerColorWaitMs);
+}
 
 // true on pages without the intro, and once you've scrolled all the way through the intro
 function introIsOver() {
@@ -108,7 +125,10 @@ function setupBanner(row, canvas, img, order) {
             entries.forEach(function (entry) {
                 if (entry.intersectionRatio >= 0.5) {
                     observer.unobserve(row);   // only the first time
-                    bannerWaiting.push({ order: order, start: start });
+                    bannerWaiting.push({ order: order, start: function () {
+                        start();
+                        scheduleColor();
+                    } });
                     // wait a moment: banners that appear together are reported one after the other,
                     // and we want all of them in the line-up before choosing who goes first
                     setTimeout(runBannerQueue, 150);
