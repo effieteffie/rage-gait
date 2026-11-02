@@ -82,6 +82,12 @@ a[data-formkit-toggle] {
     inset: 0;
     z-index: 1;
 }
+/* No fade on hover for archive titles. A faded link (opacity below 1) becomes its own stacking
+   layer, which pushed the stretched layer UNDER the banner: the banner then stole the hover, the
+   fade stopped, the layer jumped back on top, and so on. That was the flicker. */
+.col-title a:hover {
+    opacity: 1;
+}
 .col-title {
     grid-column: span 4; /* the title takes 3 of the 6 columns */
 }
