@@ -69,6 +69,19 @@ a[data-formkit-toggle] {
 .table-head {
     border-bottom-width: 2px;
 }
+/* The whole row is clickable. The title link grows an invisible layer (::after) that is
+   stretched over the entire row: position: absolute with inset: 0 means "fill the nearest
+   positioned parent", which is the row (so the row gets position: relative). z-index: 1 puts the
+   layer above the banner, so clicking the banner opens the issue too. */
+.row {
+    position: relative;
+}
+.col-title a::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
 .col-title {
     grid-column: span 4; /* the title takes 3 of the 6 columns */
 }
