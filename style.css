@@ -521,3 +521,11 @@ body:not(.intro-on) #intro-spacer {
         background-position: center !important;
     }
 }
+
+/* small credit at the very bottom right of every page */
+.site-footer {
+    text-align: right;      /* pushes the text to the right edge */
+    font-size: 12px;
+    font-weight: 400;
+    padding: 24px 0 4px;
+}
