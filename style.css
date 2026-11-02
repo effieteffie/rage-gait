@@ -522,10 +522,14 @@ body:not(.intro-on) #intro-spacer {
     }
 }
 
-/* small credit at the very bottom right of every page */
+/* small credit, stuck to the bottom right corner of the window. position: fixed pins it to the
+   window, so it stays there while you scroll. pointer-events: none lets clicks pass through it. */
 .site-footer {
-    text-align: right;      /* pushes the text to the right edge */
+    position: fixed;
+    right: var(--gap);
+    bottom: 4px;
     font-size: 12px;
     font-weight: 400;
-    padding: 24px 0 4px;
+    z-index: 20;            /* above the opening animation (z-index 10) */
+    pointer-events: none;
 }
