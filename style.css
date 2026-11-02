@@ -458,6 +458,17 @@ body:not(.intro-on) #intro-spacer {
 /* ---------- Touch screens ----------
    (hover: none) is true on devices where you can't hover, like phones and tablets.
    There a banner can never be revealed by hovering, so it's always shown, under each issue. */
+/* Phones and tablets (no hover): hide the scrollbar. Desktop keeps its scrollbar. */
+@media (hover: none) {
+    html {
+        scrollbar-width: none;      /* Firefox, Chrome */
+    }
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar {
+        display: none;              /* Safari */
+    }
+}
+
 @media (hover: none) {
     .banner-wrap {
         max-height: none;     /* no longer squashed to 0 */
