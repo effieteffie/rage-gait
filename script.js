@@ -8,11 +8,9 @@
 let bannerBlockStart = 60;   // at the start, the banner is made of blocks this wide (its picture is 1200 wide)
 let bannerSharpenMs = 1500;  // the blocks shrink to nothing over this many milliseconds
 
-// On touch screens the banners take turns, from the latest issue to the earliest, so the page
-// seems to reveal itself over time instead of everything happening at once. Each one plays once.
-let bannerGapMs = 900;       // time between one banner starting and the next one starting
+// On touch screens each banner plays once, the first time it is mostly on screen, and all the
+// banners that are on screen together play at the same time (less movement than taking turns).
 let bannerWaiting = [];      // banners that are on screen and waiting for their turn
-let bannerTimer = null;      // set while we're in the pause after a banner started
 let bannerColorWaitMs = 4000; // after the last banner has finished sharpening, wait this long, then they all turn to color together
 let colorTimer = null;       // counts down to that moment; every banner that starts restarts it
 
@@ -37,18 +35,16 @@ function introIsOver() {
     return !body.classList.contains("intro-on") || body.classList.contains("intro-done");
 }
 
-// Starts the next waiting banner (if it's allowed to), then waits a moment before the one after.
+// Starts every waiting banner at the same moment (once the intro is over).
 function runBannerQueue() {
-    if (bannerTimer || bannerWaiting.length === 0 || !introIsOver()) {
+    if (bannerWaiting.length === 0 || !introIsOver()) {
         return;
     }
-    // a smaller order number means a later issue (issue 6 is order 0), so it goes first
-    bannerWaiting.sort(function (a, b) { return a.order - b.order; });
-    bannerWaiting.shift().start();
-    bannerTimer = setTimeout(function () {
-        bannerTimer = null;
-        runBannerQueue();
-    }, bannerGapMs);
+    let ready = bannerWaiting;
+    bannerWaiting = [];                  // empty the line-up before starting, so nobody starts twice
+    ready.forEach(function (banner) {
+        banner.start();
+    });
 }
 
 // Gives one banner its animation.
@@ -120,7 +116,7 @@ function setupBanner(row, canvas, img, order) {
 
     if (window.matchMedia("(hover: none)").matches) {
         // A touch screen has no hover. Each banner plays ONCE, the first time it is mostly on
-        // screen, and the banners take turns from the latest issue to the earliest (runBannerQueue).
+        // screen, together with the other banners that are on screen (runBannerQueue).
         let observer = new IntersectionObserver(function (entries) {
             entries.forEach(function (entry) {
                 if (entry.intersectionRatio >= 0.5) {
@@ -130,7 +126,7 @@ function setupBanner(row, canvas, img, order) {
                         scheduleColor();
                     } });
                     // wait a moment: banners that appear together are reported one after the other,
-                    // and we want all of them in the line-up before choosing who goes first
+                    // and we want all of them in the line-up before starting them together
                     setTimeout(runBannerQueue, 150);
                 }
             });
