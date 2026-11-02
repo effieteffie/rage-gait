@@ -527,8 +527,8 @@ body:not(.intro-on) #intro-spacer {
 .site-footer {
     position: fixed;
     right: var(--gap);
-    bottom: 4px;
-    font-size: 12px;
+    bottom: 6px;
+    font-size: 13px;
     font-weight: 400;
     z-index: 20;            /* above the opening animation (z-index 10) */
     pointer-events: none;
