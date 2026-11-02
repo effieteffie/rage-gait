@@ -33,6 +33,10 @@ a {
 a:hover {
     opacity: 0.5;
 }
+/* The nav link of the page you are on. aria-current="page" is set in each page's HTML. */
+.site-header a[aria-current="page"] {
+    color: var(--link-color);
+}
 
 /* The 6-column grid: six equal columns.
    minmax(0, 1fr) stops long words from forcing a column wider. */
@@ -157,15 +161,16 @@ a[data-formkit-toggle] {
 
 /* Issue pages: full-width text */
 .article {
-    font-size: 24px;
+    font-size: 20px;
     background-color: rgb(254, 192, 229);
-    line-height: 1.15;
+    line-height: 1.4;
     max-width: var(--article-width);   /* never wider than this, so lines stay a comfortable length */
     margin-left: auto;                 /* "auto" on both sides splits the leftover space evenly: */
     margin-right: auto;                /* that centers the text and gives it margins */
    /* outline: black dotted 2px;
     outline-offset: -2px; */
-    padding: 0.5em 1em; 
+    padding: 0.5em 1em;
+    letter-spacing: 0em;
 }
 .article h1 {
     font-size: inherit; /* same size as the text; the browser makes h1 huge by default */
