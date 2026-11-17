@@ -1,9 +1,3 @@
-// One entry per issue. To add an issue, copy an entry, paste it above, and edit it.
-// Newest issue first, since the archive shows them in this order.
-//   wordCount: the words in the article body (not the works cited), counted from the current issue page
-//   banner:    a 1200x400 image shown when you hover the row
-//   threshold: 0 to 1, how bright a banner pixel must be to turn white (higher = more black)
-//   url:       the issue's page; the title becomes a link once this is set
 const issues = [
     {
         title: "/stage/ stage #2: a frankenstein play",

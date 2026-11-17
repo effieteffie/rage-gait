@@ -1,65 +1,44 @@
-// Builds the archive table from the `issues` list in issues.js.
-// Think of it like p5: instead of drawing shapes on a canvas,
-// we create page elements (divs, images) and put them on the page.
+let bannerBlockStart = 60;
+let bannerSharpenMs = 1500;
 
-// The banner animation. When the mouse enters an issue's row, its black-and-white banner starts out
-// pixelated (made of big blocks) and sharpens as the hover goes on, while the color picture fades in
-// on top of it. The fade to color is done in CSS (see .row.playing .banner-color in style.css).
-let bannerBlockStart = 60;   // at the start, the banner is made of blocks this wide (its picture is 1200 wide)
-let bannerSharpenMs = 1500;  // the blocks shrink to nothing over this many milliseconds
+let bannerWaiting = [];
+let bannerColorWaitMs = 4000;
+let colorTimer = null;
 
-// On touch screens each banner plays once, the first time it is mostly on screen, and all the
-// banners that are on screen together play at the same time (less movement than taking turns).
-let bannerWaiting = [];      // banners that are on screen and waiting for their turn
-let bannerColorWaitMs = 4000; // after the last banner has finished sharpening, wait this long, then they all turn to color together
-let colorTimer = null;       // counts down to that moment; every banner that starts restarts it
-
-// Touch screens: turns every banner that has played to color, all at the same time.
-// (The slow fade itself is in style.css: .row.colored .banner-color.)
 function colorizeBanners() {
     document.querySelectorAll(".row.playing").forEach(function (row) {
         row.classList.add("colored");
     });
 }
 
-// Called each time a banner starts. The countdown always begins again, so it only ends once no new
-// banner has started for (sharpening time + wait) milliseconds, i.e. when all of them are done.
 function scheduleColor() {
     clearTimeout(colorTimer);
     colorTimer = setTimeout(colorizeBanners, bannerSharpenMs + bannerColorWaitMs);
 }
 
-// true on pages without the intro, and once you've scrolled all the way through the intro
 function introIsOver() {
     let body = document.body;
     return !body.classList.contains("intro-on") || body.classList.contains("intro-done");
 }
 
-// Starts every waiting banner at the same moment (once the intro is over).
 function runBannerQueue() {
     if (bannerWaiting.length === 0 || !introIsOver()) {
         return;
     }
     let ready = bannerWaiting;
-    bannerWaiting = [];                  // empty the line-up before starting, so nobody starts twice
+    bannerWaiting = [];
     ready.forEach(function (banner) {
         banner.start();
     });
 }
 
-// Gives one banner its animation.
-//   row    the table row the banner belongs to
-//   canvas the black-and-white copy, which we draw ourselves
-//   img    the color copy
-//   order  0 for the latest issue, 1 for the one before, and so on
 function setupBanner(row, canvas, img, order) {
-    let ctx = canvas.getContext("2d");               // the "pen" we draw with, like in p5
-    let small = document.createElement("canvas");    // a tiny canvas, used to shrink the picture into blocks
+    let ctx = canvas.getContext("2d");
+    let small = document.createElement("canvas");
     let smallCtx = small.getContext("2d");
     let frameId = null;
     let reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    // Draws the picture made of blocks that are `block` pixels wide. block = 1 means perfectly sharp.
     function draw(block) {
         let w = canvas.width;
         let h = canvas.height;
@@ -67,28 +46,27 @@ function setupBanner(row, canvas, img, order) {
             ctx.drawImage(img, 0, 0, w, h);
             return;
         }
-        small.width = Math.max(1, Math.ceil(w / block));   // (setting the size also clears the canvas)
+        small.width = Math.max(1, Math.ceil(w / block));
         small.height = Math.max(1, Math.ceil(h / block));
         smallCtx.imageSmoothingQuality = "high";
-        smallCtx.drawImage(img, 0, 0, small.width, small.height);  // 1. shrink: each pixel is the average of a block
-        ctx.imageSmoothingEnabled = false;                          // 2. blow it up again WITHOUT smoothing,
-        ctx.drawImage(small, 0, 0, w, h);                           //    so every shrunk pixel becomes a visible square
+        smallCtx.drawImage(img, 0, 0, small.width, small.height);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(small, 0, 0, w, h);
     }
 
-    // Starts (or restarts) the animation from the beginning.
     function start() {
-        row.classList.add("playing");        // makes the color picture fade in (style.css)
+        row.classList.add("playing");
         cancelAnimationFrame(frameId);
-        if (reduceMotion) {                  // the visitor asked for less motion: no pixelation
+        if (reduceMotion) {
             draw(1);
             return;
         }
-        draw(bannerBlockStart);              // start from the blockiest version right away
+        draw(bannerBlockStart);
         let startTime = performance.now();
         function frame(now) {
-            // p goes from 0 (start) to 1 (after bannerSharpenMs)
+
             let p = Math.max(0, Math.min((now - startTime) / bannerSharpenMs, 1));
-            // the blocks shrink fast at first and slowly at the end: 80, 60, 40 ... 3, 2, 1
+
             draw(Math.max(1, Math.round(bannerBlockStart * (1 - p) * (1 - p))));
             if (p < 1) {
                 frameId = requestAnimationFrame(frame);
@@ -99,10 +77,9 @@ function setupBanner(row, canvas, img, order) {
 
     function stop() {
         cancelAnimationFrame(frameId);
-        row.classList.remove("playing");     // the color picture fades away again
+        row.classList.remove("playing");
     }
 
-    // Once the picture has loaded we know its size, so we can set the canvas to match.
     function init() {
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
@@ -115,18 +92,16 @@ function setupBanner(row, canvas, img, order) {
     }
 
     if (window.matchMedia("(hover: none)").matches) {
-        // A touch screen has no hover. Each banner plays ONCE, the first time it is mostly on
-        // screen, together with the other banners that are on screen (runBannerQueue).
+
         let observer = new IntersectionObserver(function (entries) {
             entries.forEach(function (entry) {
                 if (entry.intersectionRatio >= 0.5) {
-                    observer.unobserve(row);   // only the first time
+                    observer.unobserve(row);
                     bannerWaiting.push({ order: order, start: function () {
                         start();
                         scheduleColor();
                     } });
-                    // wait a moment: banners that appear together are reported one after the other,
-                    // and we want all of them in the line-up before starting them together
+
                     setTimeout(runBannerQueue, 150);
                 }
             });
@@ -138,53 +113,45 @@ function setupBanner(row, canvas, img, order) {
     }
 }
 
-// Makes one table row from a list of 4 pieces of text.
-// banner is an image path (or nothing); altText describes the image.
-// url is the issue's page (or nothing): if given, the title becomes a link.
-// threshold (optional) is how bright a banner pixel must be to turn white, from 0 to 1.
 function makeRow(cells, banner, altText, url, threshold, order) {
-    // like p5's createDiv(): make a new empty <div>
+
     let row = document.createElement("div");
     row.className = "row grid";
 
-    // one class name per column, in order (positions 0, 1, 2, 3)
     let cellClasses = ["col-title", "col-number", "col-date", "col-words"];
 
-    // plain for loop, same as in p5: i goes 0, 1, 2, 3
     for (let i = 0; i < cells.length; i++) {
         let cell = document.createElement("div");
-        cell.className = cellClasses[i]; // pick the class at position i
+        cell.className = cellClasses[i];
 
         if (i === 0 && url) {
-            // first cell (the title) and we have a page: make it a link
+
             let link = document.createElement("a");
             link.href = url;
             link.textContent = cells[i];
             cell.appendChild(link);
         } else {
-            cell.textContent = cells[i]; // put the text inside the div
+            cell.textContent = cells[i];
         }
 
-        row.appendChild(cell);           // put the cell inside the row
+        row.appendChild(cell);
     }
 
-    // only rows that have a banner get the hidden banner area
     if (banner) {
         let wrap = document.createElement("div");
         wrap.className = "banner-wrap";
 
-        // the frame holds two copies of the same picture, stacked on top of each other
         let frame = document.createElement("div");
         frame.className = "banner-frame";
         if (threshold !== undefined) {
-            frame.style.setProperty("--threshold", threshold); // read by the CSS filter
+            frame.style.setProperty("--threshold", threshold);
         }
 
-        let canvas = document.createElement("canvas");   // the black-and-white copy (drawn by setupBanner)
+        let canvas = document.createElement("canvas");
         canvas.className = "banner-threshold";
-        canvas.setAttribute("aria-hidden", "true");      // screen readers use the color picture's description
+        canvas.setAttribute("aria-hidden", "true");
 
-        let img = document.createElement("img");         // the color copy
+        let img = document.createElement("img");
         img.className = "banner-color";
         img.src = banner;
         img.alt = altText;
@@ -197,42 +164,30 @@ function makeRow(cells, banner, altText, url, threshold, order) {
         setupBanner(row, canvas, img, order);
     }
 
-    return row; // hand the finished row back to whoever called us
+    return row;
 }
 
-// Fills <div id="archive"> with one row per issue.
-// (The column-name row is written by hand in index.html.)
 function buildTable() {
     let archive = document.getElementById("archive");
-    archive.innerHTML = ""; // start empty so running this twice never duplicates rows
+    archive.innerHTML = "";
 
-    // one row per issue: i goes 0, 1, 2, ... up to the last issue
     for (let i = 0; i < issues.length; i++) {
-        let issue = issues[i]; // the current issue, like issues[i] in p5
+        let issue = issues[i];
 
         let row = makeRow(
             [issue.title, issue.number, issue.date, issue.wordCount],
             issue.banner,
             issue.title,
-            issue.url, // undefined if the issue has no url: that's fine
+            issue.url,
             issue.threshold,
-            i   // 0 for the latest issue, 1 for the next, ...
+            i
         );
         archive.appendChild(row);
     }
 }
 
-buildTable(); // runs once when the page loads, like setup() in p5
+buildTable();
 
-// ---------- Opening animation ----------
-// The page opens on a screen full of falling text from the poster, with "rage gait" in the
-// middle. Every block of text is a "cluster" with a depth: far ones are small, slow and faint,
-// near ones are big, fast and solid, which gives a feeling of 3D. As you scroll down, the title
-// travels to the top-left corner and the text fades away, so the archive slides up underneath.
-// Scrolling back up reverses it.
-
-// The writing from the poster. Each line below is one cluster. Every word becomes its own
-// vertical column of stacked letters, and a space inside a word ("A SPECTRE") leaves a gap.
 let phrases = [
     ["EVERY", "FRIDAY"],
     ["A SPECTRE", "IS", "HAUNTING", "THE", "INTERNET"],
@@ -240,51 +195,41 @@ let phrases = [
     ["INTERNET", "CULTURE", "CRITICISM", "AND", "MORE"]
 ];
 
-let mantisDepth = 0.5;        // clusters with a depth below this are drawn BEHIND the mantis, the rest in front
-let areaPerCluster = 90000;  // one cluster for every 180000 square pixels (bigger = fewer clusters)
-let minClusters = 5;          // never fewer than this, even on a small window, so the screen never goes empty
-let letterStep = 1.5;         // distance from one letter to the next in a column (x the text size)
-let columnStep = 1.9;         // distance from one column to the next (x the text size)
-let maxStagger = 2.5;         // how many letters lower a column can start than the top of the cluster
-let smallScreenScale = 0.6;      // on a phone, every letter is this much of its normal size
-let bitmapScale = 1;             // how many real pixels per CSS pixel the clusters are drawn with (set in setupCanvas)
-let farSize = 10;             // text size of the farthest clusters (px)
-let nearSize = 26;            // text size of the nearest clusters (px)
-let farSpeed = 0.25;          // far clusters fall at 0.25 x the normal speed
-let nearSpeed = 1.8;          // near clusters fall at 1.8 x the normal speed
-let farAlpha = 0.25;          // far clusters are faint (0 = invisible, 1 = solid)
-let fallSpeed = 90;           // the normal fall speed, in pixels per second
+let mantisDepth = 0.5;
+let areaPerCluster = 90000;
+let minClusters = 5;
+let letterStep = 1.5;
+let columnStep = 1.9;
+let maxStagger = 2.5;
+let smallScreenScale = 0.6;
+let bitmapScale = 1;
+let farSize = 10;
+let nearSize = 26;
+let farSpeed = 0.25;
+let nearSpeed = 1.8;
+let farAlpha = 0.25;
+let fallSpeed = 90;
 
-// Two experiments for making the rain feel more like falling code. Open the page with ?rain=a or
-// ?rain=b (no ?rain= means the plain rain). Safe to delete once one is chosen.
-//   a = every column has a solid "head" letter at the bottom and a trail that fades out above it
-//   b = the same, plus letters that flicker into another character for a moment, like glitching code
-// Version b (trails + glitch) is now the default. ?rain=a gives just the trails, ?rain=plain the old rain.
 let rainChoice = new URLSearchParams(window.location.search).get("rain");
 let rainMode = rainChoice === "plain" ? null : (rainChoice || "b");
 let glitchLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/:*+<>";
 
-// How the clusters react to scrolling
-let scrollPush = 0.6;    // bigger = scrolling changes the speed more
-let maxUpSpeed = 120;    // scrolling up moves them up, but never faster than this (px per second)
-let maxDownSpeed = 1500; // scrolling down speeds them up, but never beyond this
+let scrollPush = 0.6;
+let maxUpSpeed = 120;
+let maxDownSpeed = 1500;
 
-// p = 0 gives a, p = 1 gives b, in between gives a mix. Same as lerp() in p5.
 function lerp(a, b, p) {
     return a + (b - a) * p;
 }
 
-// Makes one cluster of text at a random place, with a random depth.
 function makeCluster(w, h) {
-    let depth = Math.random(); // 0 = far away, 1 = right in front of you
-    let scale = window.innerWidth <= 800 ? smallScreenScale : 1;   // smaller letters on a phone
+    let depth = Math.random();
+    let scale = window.innerWidth <= 800 ? smallScreenScale : 1;
     let size = lerp(farSize, nearSize, depth) * scale;
     let words = phrases[Math.floor(Math.random() * phrases.length)];
 
-    // Every word is a column. Each column starts a random amount lower than the top,
-    // which gives the staggered look of the poster.
     let columns = [];
-    let rows = 0; // how many letters tall the whole cluster is
+    let rows = 0;
     for (let i = 0; i < words.length; i++) {
         let offset = Math.random() * maxStagger;
         columns.push({ text: words[i], offset: offset });
@@ -294,32 +239,27 @@ function makeCluster(w, h) {
     let width = size + (words.length - 1) * columnStep * size;
     let height = rows * letterStep * size;
 
-    // Draw the whole cluster ONCE onto a small canvas of its own. After that, every frame only has to
-    // COPY this picture to a new position, which is far cheaper than drawing every letter again
-    // (drawing text is slow, and a phone is slower at it than a computer).
     let bitmap = document.createElement("canvas");
     bitmap.width = Math.ceil(width * bitmapScale);
     bitmap.height = Math.ceil(height * bitmapScale);
 
     let cluster = {
-        x: Math.random() * Math.max(w - width, 0),             // left edge
-        y: Math.random() * (h + height) - height,              // top edge
+        x: Math.random() * Math.max(w - width, 0),
+        y: Math.random() * (h + height) - height,
         width: width,
         height: height,
         bitmap: bitmap,
         columns: columns,
         depth: depth,
-        size: size,                                   // near = big
-        speedScale: lerp(farSpeed, nearSpeed, depth), // near = fast
-        alpha: lerp(farAlpha, 1, depth),              // near = solid, far = faint
-        flicker: null                                 // a letter that is glitching right now (?rain=b), see draw()
+        size: size,
+        speedScale: lerp(farSpeed, nearSpeed, depth),
+        alpha: lerp(farAlpha, 1, depth),
+        flicker: null
     };
     drawClusterBitmap(cluster);
     return cluster;
 }
 
-// Draws every letter of a cluster onto its own little canvas. It is called once when the cluster
-// is made, and again (?rain=b only) each time a letter starts or stops flickering.
 function drawClusterBitmap(c) {
     let bctx = c.bitmap.getContext("2d");
     bctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -331,17 +271,16 @@ function drawClusterBitmap(c) {
     bctx.fillStyle = "black";
     for (let j = 0; j < c.columns.length; j++) {
         let column = c.columns[j];
-        let x = c.size / 2 + j * columnStep * c.size;   // the middle of this column, inside the picture
+        let x = c.size / 2 + j * columnStep * c.size;
         let last = column.text.length - 1;
         for (let k = 0; k <= last; k++) {
             let letter = column.text[k];
             if (letter === " ") continue;
             if (c.flicker && c.flicker.column === j && c.flicker.letter === k) {
-                letter = c.flicker.character;   // this one is glitching: show another character
+                letter = c.flicker.character;
             }
             if (rainMode) {
-                // The column falls downward, so its LAST letter is the head: fully solid.
-                // The letters above it are its trail and get fainter the further up they are.
+
                 bctx.globalAlpha = k === last ? 1 : 0.12 + 0.6 * Math.pow(k / last, 1.5);
             }
             bctx.fillText(letter, x, (column.offset + k + 0.5) * letterStep * c.size);
@@ -352,14 +291,12 @@ function drawClusterBitmap(c) {
 
 function startIntro() {
     let intro = document.getElementById("intro");
-    let nearCanvas = document.getElementById("ascii");     // in front of the mantis
-    let farCanvas = document.getElementById("ascii-far");  // behind the mantis
+    let nearCanvas = document.getElementById("ascii");
+    let farCanvas = document.getElementById("ascii-far");
     let mantis = document.getElementById("mantis");
     let floatTitle = document.getElementById("float-title");
     let spacer = document.getElementById("intro-spacer");
 
-    // Skip the intro if index.html decided so (see the little script at the top of <body>),
-    // or if the visitor asked their computer to reduce motion
     let skip = !document.body.classList.contains("intro-on") ||
         window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (skip) {
@@ -370,64 +307,56 @@ function startIntro() {
         return;
     }
 
-    // Browsers remember your scroll position and put you back there on reload.
-    // We always want to start at the top, so switch that off and scroll to the top.
     history.scrollRestoration = "manual";
     window.scrollTo(0, 0);
 
-    let nearCtx = nearCanvas.getContext("2d"); // a ctx is the "pen" we draw with: one per canvas
+    let nearCtx = nearCanvas.getContext("2d");
     let farCtx = farCanvas.getContext("2d");
     let w, h;
-    // The height we use for the whole intro. window.innerHeight changes a little on every frame
-    // while Safari's toolbar slides away, which made the logo jump around. The spacer is 100vh
-    // (the tallest the screen gets), and that number never changes mid-scroll.
+
     let stableH = Math.max(window.innerHeight, spacer.offsetHeight);
-    let clusters = [];              // the list of all falling clusters of text
+    let clusters = [];
     let lastTime = 0;
     let running = false;
-    let speed = fallSpeed;          // the speed right now (changes smoothly; negative = moving up)
-    let scrollSpeed = 0;            // how fast the page is being scrolled (px per second, down = positive)
+    let speed = fallSpeed;
+    let scrollSpeed = 0;
     let lastScrollY = 0;
 
-    // The mantis ghost is made with a "Divide" blend, which the browser would redo on every
-    // frame (slow, especially on phones). Here we do the same maths ONCE, pixel by pixel, and put
-    // the finished ghost in place of the picture. If the browser won't let us read the picture's
-    // pixels (for example when the page is opened straight from a file), we keep the CSS version.
     function bakeMantis() {
         try {
-            let scale = Math.min(1, 900 / mantis.naturalHeight);   // a faint ghost doesn't need every pixel
+            let scale = Math.min(1, 900 / mantis.naturalHeight);
             let c = document.createElement("canvas");
             c.width = Math.round(mantis.naturalWidth * scale);
             c.height = Math.round(mantis.naturalHeight * scale);
             let cx = c.getContext("2d");
             cx.drawImage(mantis, 0, 0, c.width, c.height);
-            let pixels = cx.getImageData(0, 0, c.width, c.height);   // can fail: that's what the try is for
+            let pixels = cx.getImageData(0, 0, c.width, c.height);
 
-            let bg = getComputedStyle(intro).backgroundColor.match(/[\d.]+/g);   // "rgb(234, 174, 211)" -> 234, 174, 211
+            let bg = getComputedStyle(intro).backgroundColor.match(/[\d.]+/g);
             if (!bg || bg.length < 3) {
                 throw new Error("unknown background color");
             }
-            let ghost = parseFloat(getComputedStyle(mantis).opacity);   // the ghost strength from the CSS
+            let ghost = parseFloat(getComputedStyle(mantis).opacity);
 
-            let d = pixels.data;   // red, green, blue, alpha of every pixel, one after the other
+            let d = pixels.data;
             for (let i = 0; i < d.length; i += 4) {
                 let alpha = d[i + 3] / 255;
                 for (let k = 0; k < 3; k++) {
                     let picture = d[i + k] / 255;
-                    // Divide: background / picture (and never more than 1)
+
                     let result = picture <= 0 ? 1 : Math.min(1, (bg[k] / 255) / picture);
                     d[i + k] = Math.round(result * 255);
                 }
-                d[i + 3] = Math.round(alpha * ghost * 255);   // the ghost strength becomes see-through-ness
+                d[i + 3] = Math.round(alpha * ghost * 255);
             }
             cx.putImageData(pixels, 0, 0);
 
             c.id = "mantis";
-            c.className = "baked";   // style.css turns the live blend off for this one
+            c.className = "baked";
             mantis.replaceWith(c);
-            mantis = c;              // updateIntro() moves this one as you scroll
+            mantis = c;
         } catch (e) {
-            // keep the plain picture with its CSS blend
+
         }
     }
     if (mantis.complete && mantis.naturalWidth > 0) {
@@ -436,72 +365,58 @@ function startIntro() {
         mantis.addEventListener("load", bakeMantis);
     }
 
-    // Where the title ends up: the same size as the page's normal text, and the same gap from
-    // the corner as --gap. We read both from the CSS, so changing font-size or --gap there
-    // changes this too, with nothing to update here.
     let endSize = parseFloat(getComputedStyle(document.body).fontSize);
     let corner = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--gap"));
 
-    // Sizes the canvas to the window and creates the characters.
-    // dpr makes it sharp on high-resolution (retina) screens.
     function setupCanvas() {
         w = window.innerWidth;
         stableH = Math.max(window.innerHeight, spacer.offsetHeight);
         h = stableH;
-        // dpr = how many real pixels make up one CSS pixel (3 on many phones). More pixels look
-        // sharper but take much longer to draw, so we cap it: this is a moving, faint background.
+
         let dpr = Math.min(window.devicePixelRatio || 1, window.matchMedia("(hover: none)").matches ? 1.5 : 2);
-        // do the same setup for both canvases
+
         [[nearCanvas, nearCtx], [farCanvas, farCtx]].forEach(function (pair) {
             let canvas = pair[0];
             let ctx = pair[1];
-            canvas.width = w * dpr;     // changing the size also resets the pen's settings,
-            canvas.height = h * dpr;    // so we set them again below
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            ctx.textAlign = "center";   // x is the middle of each character
+            ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillStyle = "black";
         });
 
-        bitmapScale = dpr;   // the cluster pictures are made as sharp as the canvas they are copied onto
+        bitmapScale = dpr;
         let count = Math.max(minClusters, Math.round((w * h) / areaPerCluster));
         clusters = [];
         for (let i = 0; i < count; i++) {
             clusters.push(makeCluster(w, h));
         }
-        // far ones first, near ones last, so near clusters are drawn on top
+
         clusters.sort(function (a, b) { return a.depth - b.depth; });
     }
 
-    // draw() runs once per frame (about 60 times a second), like draw() in p5
-    // A phone draws about 30 frames a second instead of 60: half the work, and slowly falling text still looks smooth.
     let limitFrameRate = window.matchMedia("(hover: none)").matches;
 
     function draw(now) {
         if (!running) return;
 
-        // too soon since the last frame we drew? skip this one (lastTime is only updated when we do draw)
         if (limitFrameRate && now - lastTime < 30) {
             requestAnimationFrame(draw);
             return;
         }
 
-        // time since the last frame, in seconds (capped so a paused tab doesn't jump)
         let dt = Math.min((now - lastTime) / 1000, 0.1);
         lastTime = now;
 
-        // How fast is the user scrolling? (distance moved since the last frame / time)
         let instantScroll = (window.scrollY - lastScrollY) / Math.max(dt, 0.001);
         lastScrollY = window.scrollY;
-        // smooth it out, because mouse wheels scroll in little jumps
+
         scrollSpeed += (instantScroll - scrollSpeed) * Math.min(dt * 10, 1);
 
-        // The speed we want: the normal fall speed, pushed by the scrolling.
-        // Scroll down = faster. Scroll up = slows down, then moves up (slowly).
         let wanted = fallSpeed + scrollSpeed * scrollPush;
-        wanted = Math.min(Math.max(wanted, -maxUpSpeed), maxDownSpeed); // keep between the limits
+        wanted = Math.min(Math.max(wanted, -maxUpSpeed), maxDownSpeed);
 
-        // Ease toward the wanted speed instead of jumping, so it feels like it has weight
         speed += (wanted - speed) * Math.min(dt * 6, 1);
 
         nearCtx.clearRect(0, 0, w, h);
@@ -510,25 +425,20 @@ function startIntro() {
         for (let i = 0; i < clusters.length; i++) {
             let c = clusters[i];
 
-            // each cluster moves at the shared speed times its own depth factor
-            // (this difference between near and far is what creates the parallax)
             c.y += speed * c.speedScale * dt;
 
-            // fell completely off the bottom: come back in at the top as a brand new cluster
             if (c.y > h) {
                 clusters[i] = c = makeCluster(w, h);
                 c.y = -c.height;
                 respawned = true;
             }
-            // moved completely off the top (scrolling up): come back in at the bottom
+
             if (c.y + c.height < 0) {
                 clusters[i] = c = makeCluster(w, h);
                 c.y = h;
                 respawned = true;
             }
 
-            // ?rain=b: now and then one letter of an on-screen cluster turns into another character
-            // for a split second, then goes back. Redrawing the little picture is cheap, and rare.
             if (rainMode === "b" && c.y < h && c.y + c.height > 0) {
                 if (c.flicker && now > c.flicker.until) {
                     c.flicker = null;
@@ -539,46 +449,38 @@ function startIntro() {
                         column: j,
                         letter: Math.floor(Math.random() * c.columns[j].text.length),
                         character: glitchLetters[Math.floor(Math.random() * glitchLetters.length)],
-                        until: now + 100 + Math.random() * 250   // milliseconds
+                        until: now + 100 + Math.random() * 250
                     };
                     drawClusterBitmap(c);
                 }
             }
 
-            // far clusters go on the back canvas (behind the mantis), near ones on the front one.
-            // We only COPY the cluster's ready-made picture, and only if it is on screen.
             if (c.y < h && c.y + c.height > 0) {
                 let ctx = c.depth < mantisDepth ? farCtx : nearCtx;
                 ctx.globalAlpha = c.alpha;
                 ctx.drawImage(c.bitmap, c.x, c.y, c.width, c.height);
             }
         }
-        // new clusters got a new random depth, so put the list back in far-to-near order
+
         if (respawned) {
             clusters.sort(function (a, b) { return a.depth - b.depth; });
         }
 
-        requestAnimationFrame(draw); // ask the browser to call draw() again next frame
+        requestAnimationFrame(draw);
     }
 
     function startDrawing() {
         if (running) return;
         running = true;
         lastTime = performance.now();
-        lastScrollY = window.scrollY; // so we don't count the time we weren't drawing as scrolling
+        lastScrollY = window.scrollY;
         scrollSpeed = 0;
         requestAnimationFrame(draw);
     }
 
-    // ---- The logo that travels to the corner ----
-    // Changing a text's font-size, top and left on every scroll event makes the browser lay the text out
-    // and redraw its letters at a new size every frame. That is fine on a computer but choppy on a phone.
-    // So while you scroll we keep the font-size fixed (the big starting size) and only change `transform`
-    // (move + scale), which the browser can do on the graphics chip without redrawing any letters.
-    // When the logo has arrived, we switch ONCE to its real final size, so it ends up perfectly sharp.
-    let titleMode = null;     // "scaled" while travelling, "final" once it has arrived
-    let startSize = 0;        // the big font-size it starts with
-    let titleW = 0;           // how wide and tall the logo is at that starting size
+    let titleMode = null;
+    let startSize = 0;
+    let titleW = 0;
     let titleH = 0;
 
     function setupTitle() {
@@ -590,12 +492,6 @@ function startIntro() {
         setNativeVars();
     }
 
-    // ---- Letting the browser do the travelling (scroll-driven CSS animation) ----
-    // Moving the logo from JavaScript always arrives a little late on iPhones, because Safari scrolls
-    // the page first and only then runs our code. A CSS animation tied to the scroll position
-    // (animation-timeline: scroll()) is run by the browser itself, in step with the scrolling.
-    // JavaScript only hands it the start and end numbers, below, once, not on every scroll.
-    // Browsers that don't know animation-timeline keep using the JavaScript way further down.
     let native = window.CSS && CSS.supports("animation-timeline: scroll()");
     if (native) {
         document.documentElement.classList.add("native-intro");
@@ -603,20 +499,17 @@ function startIntro() {
     function setNativeVars() {
         if (!native) return;
         let root = document.documentElement.style;
-        root.setProperty("--intro-h", stableH + "px");                              // scrolling this far = the end
-        root.setProperty("--logo-x0", (window.innerWidth - titleW) / 2 + "px");    // start: centered
+        root.setProperty("--intro-h", stableH + "px");
+        root.setProperty("--logo-x0", (window.innerWidth - titleW) / 2 + "px");
         root.setProperty("--logo-y0", (stableH - titleH) / 2 + "px");
-        root.setProperty("--logo-x1", corner + "px");                               // end: the corner
+        root.setProperty("--logo-x1", corner + "px");
         root.setProperty("--logo-y1", corner + "px");
-        root.setProperty("--logo-s1", endSize / startSize);                         // end: the normal text size
+        root.setProperty("--logo-s1", endSize / startSize);
         root.setProperty("--logo-end-size", endSize + "px");
     }
 
-    // Runs on every scroll. p is how far through the intro we are: 0 = top, 1 = one screen down.
-    let introLocked = false;   // true once the intro has been removed for good
+    let introLocked = false;
 
-    // The intro plays only once: when you have scrolled all the way through it, we take
-    // the intro pieces out of the page, so scrolling back up just shows the normal page.
     function lockIntro() {
         let spacerHeight = spacer.offsetHeight;
         introLocked = true;
@@ -624,12 +517,11 @@ function startIntro() {
         intro.remove();
         floatTitle.remove();
         spacer.remove();
-        document.body.classList.remove("intro-on");   // the header's own logo shows again, in the same spot
-        // The spacer was one screen tall, so everything moved up by that much: scroll up by the
-        // same amount so that nothing seems to move.
+        document.body.classList.remove("intro-on");
+
         let newY = Math.max(0, window.scrollY - spacerHeight);
         if (window.lenis) {
-            window.lenis.scrollTo(newY, { immediate: true, force: true });   // Lenis (smooth scrolling) keeps its own idea of the position, so tell it
+            window.lenis.scrollTo(newY, { immediate: true, force: true });
         } else {
             window.scrollTo(0, newY);
         }
@@ -641,22 +533,20 @@ function startIntro() {
         let p = Math.min(Math.max(window.scrollY / stableH, 0), 1);
 
         if (!native) {
-            intro.style.opacity = 1 - p; // the characters fade as you scroll
-            mantis.style.transform = "translateY(" + (-12 * p) + "vh)"; // the mantis drifts up slowly
+            intro.style.opacity = 1 - p;
+            mantis.style.transform = "translateY(" + (-12 * p) + "vh)";
         }
 
-        // no point drawing once it's invisible; start again if you scroll back up
         if (p >= 1) {
             running = false;
         } else {
             startDrawing();
         }
 
-        // The title: from the middle of the screen (big) to the top-left corner (small)
         if (native) {
-            // the CSS animation does the travelling (see style.css); nothing to do here
+
         } else if (p >= 0.99) {
-            // arrived: switch to the real final size (sharp text) and sit exactly in the corner
+
             if (titleMode !== "final") {
                 floatTitle.style.fontSize = endSize + "px";
                 titleMode = "final";
@@ -664,26 +554,23 @@ function startIntro() {
             floatTitle.style.transform = "translate(" + corner + "px, " + corner + "px)";
         } else {
             if (titleMode !== "scaled") {
-                setupTitle();   // scrolled back up: go back to the big size
+                setupTitle();
             }
-            // scale goes from 1 (big) down to the final size / the big size; the box's top-left corner
-            // travels from where it sits when centered to the corner of the screen
+
             let scale = lerp(1, endSize / startSize, p);
             let x = lerp((window.innerWidth - titleW) / 2, corner, p);
             let y = lerp((stableH - titleH) / 2, corner, p);
             floatTitle.style.transform = "translate(" + x + "px, " + y + "px) scale(" + scale + ")";
         }
 
-        // the very end of the intro: it won't play again
         if (p >= 0.99) {
             lockIntro();
             return;
         }
 
-        // Same moment: tell the CSS that the intro is finished (or not, if you scrolled back up)
         document.body.classList.toggle("intro-done", p >= 0.99);
         if (p >= 0.99) {
-            runBannerQueue();   // banners may have been waiting for the intro to finish
+            runBannerQueue();
         }
     }
 
@@ -692,10 +579,6 @@ function startIntro() {
     updateIntro();
     window.addEventListener("scroll", updateIntro);
 
-    // On iPhones Safari can deliver "scroll" late while its toolbar slides, so the logo falls behind
-    // the page. visualViewport reports the visible area's changes, and a check once per frame
-    // (requestAnimationFrame) catches anything the events miss. updateIntro is cheap, so we
-    // only redo it when scrollY has actually changed.
     if (window.visualViewport) {
         window.visualViewport.addEventListener("scroll", updateIntro);
     }
@@ -709,16 +592,12 @@ function startIntro() {
     }
     requestAnimationFrame(watchScroll);
 
-    // Some browsers restore the old scroll position only after the page has finished loading,
-    // so scroll to the top once more at that moment.
     window.addEventListener("load", function () {
         if (introLocked) return;
         window.scrollTo(0, 0);
         updateIntro();
     });
-    // On phones, Safari's toolbar slides away and back while you scroll, and that fires "resize"
-    // with only the height changed. Rebuilding everything then makes the scroll stutter, so we
-    // only rebuild when the width changes (a real resize or a phone rotation).
+
     let lastWidth = window.innerWidth;
     window.addEventListener("resize", function () {
         if (introLocked) return;

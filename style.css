@@ -1,45 +1,39 @@
-
-
-/* Colors and spacing live in variables so we can change them in one place */
 :root {
     --black: #4B2636;
     --white: #EAAED3;
-    --yellow: #f4d31a; /* picked from the issue 6 banner */
-    --link-color: #a3185e; /* the color of links (the underlined ones) */
+    --yellow: #f4d31a;
+    --link-color: #a3185e;
     --gap: 8px;
-    --header-gap: 16px; /* empty band under the header on article pages (see .site-header:has) */
+    --header-gap: 16px;
     --row-padding: 4px;
-    --article-width: 36em; /* how wide the text of an issue page can get (em = relative to the text size) */
+    --article-width: 36em;
 }
 
 body {
     margin: 0;
-    padding: 0 var(--gap) var(--gap); /* no top padding: the sticky header has its own */
+    padding: 0 var(--gap) var(--gap);
     background-color: var(--white);
     color: var(--black);
-    /* font stack: the browser uses the first font it finds on the computer */
+
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-weight: 700;       /* bold, like archivio-uno */
+    font-weight: 700;
     font-size: 20px;
-    line-height: 1.2;       /* space between lines, as a multiple of the font size */
-    letter-spacing: -0.01em; /* pulls letters slightly closer together */
+    line-height: 1.2;
+    letter-spacing: -0.01em;
 }
 
-/* Links: same color as the text, no underline, fade a little on hover */
 a {
-    color: inherit;         /* "use whatever color the parent has" instead of blue */
+    color: inherit;
     text-decoration: none;
 }
 a:hover {
     opacity: 0.5;
 }
-/* The nav link of the page you are on. aria-current="page" is set in each page's HTML. */
+
 .site-header a[aria-current="page"] {
     color: var(--link-color);
 }
 
-/* The 6-column grid: six equal columns.
-   minmax(0, 1fr) stops long words from forcing a column wider. */
 .grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -49,19 +43,18 @@ a:hover {
 .logo {
     font-family: "Georgia", "Times New Roman", Times, serif;
     font-weight: 500;
-    letter-spacing: -0.08em; /* em = relative to the text size, so it scales */
+    letter-spacing: -0.08em;
 }
 .site-header .site-title {
     display: block;
-    margin-bottom: 20px; /* empty space between the title and the nav links */
+    margin-bottom: 20px;
 }
 
 a[data-formkit-toggle] {
     justify-self: start;
-    align-self: start;     /* top of the row, like the other links */
+    align-self: start;
 }
 
-/* Archive table rows share the 6-column grid from the header */
 .row {
     padding: var(--row-padding) 0px;
     border-bottom: 1px solid var(--black);
@@ -69,10 +62,7 @@ a[data-formkit-toggle] {
 .table-head {
     border-bottom-width: 2px;
 }
-/* The whole row is clickable. The title link grows an invisible layer (::after) that is
-   stretched over the entire row: position: absolute with inset: 0 means "fill the nearest
-   positioned parent", which is the row (so the row gets position: relative). z-index: 1 puts the
-   layer above the banner, so clicking the banner opens the issue too. */
+
 .row {
     position: relative;
 }
@@ -82,80 +72,63 @@ a[data-formkit-toggle] {
     inset: 0;
     z-index: 1;
 }
-/* No fade on hover for archive titles. A faded link (opacity below 1) becomes its own stacking
-   layer, which pushed the stretched layer UNDER the banner: the banner then stole the hover, the
-   fade stopped, the layer jumped back on top, and so on. That was the flicker. */
+
 .col-title a:hover {
     opacity: 1;
 }
 .col-title {
-    grid-column: span 4; /* the title takes 3 of the 6 columns */
+    grid-column: span 4;
 }
-/* number, date and word count take 1 column each by default: 3+1+1+1 = 6 */
 
-/* Header stays at the top of the window while you scroll (position: sticky) */
 .site-header {
     position: sticky;
     top: 0;
-    z-index: 5;                 /* above the table, so rows slide underneath it */
-    background: var(--white);   /* hides the rows that slide underneath */
-    padding: var(--gap) 0 0;    /* just a gap at the top */
+    z-index: 5;
+    background: var(--white);
+    padding: var(--gap) 0 0;
 }
-/* space between the nav links and the column names (only on the archive page) */
+
 .site-header .table-head {
     margin-top: 8px;
 }
 
 .highlight {
-  background: var(--black);   /* the highlight colour behind the text */
-    color: var(--white);        /* text colour on top of it */
+  background: var(--black);
+    color: var(--white);
     padding: 0 0.2em;
 }
 
-/* On article pages (a header that is directly followed by an .article) the header keeps an
-   empty band under its links. It has a solid background, so scrolling text disappears under
-   the band before it can touch the links. :has() lets a rule look at what's around an element,
-   and + means "the very next element". */
 .site-header:has(+ .article) {
     padding-bottom: var(--header-gap);
 }
 
-/* Banner: hidden by default (height capped at 0), opens when the row is hovered */
 .banner-wrap {
-    grid-column: 1 / -1;  /* from the first grid line to the last = all 6 columns */
+    grid-column: 1 / -1;
     max-height: 0;
-    overflow: hidden;     /* hide whatever doesn't fit inside the capped height */
+    overflow: hidden;
     transition: max-height 1.6s ease;
 }
 .row:hover .banner-wrap {
-    max-height: 40vw;     /* 1vw = 1% of window width; a 3:1 banner is about 33vw tall */
+    max-height: 40vw;
 }
-/* A banner is two copies of the same picture, stacked on top of each other:
-     .banner-threshold  a canvas that script.js draws pixelated and then sharpens, in black and white
-     .banner-color      the normal color picture: invisible until you've been hovering for a long time */
+
 .banner-frame {
     position: relative;
     width: 50%;
-    aspect-ratio: 3 / 1;  /* keeps the 1200x400 shape */
+    aspect-ratio: 3 / 1;
     margin-top: 4px;
 }
 .banner-threshold,
 .banner-color {
     position: absolute;
-    inset: 0;             /* both fill the frame exactly */
+    inset: 0;
     display: block;
     width: 100%;
     height: 100%;
 }
 
 .banner-threshold {
-    /* The "threshold" look: every pixel becomes pure black or pure white, and the white melts away.
-         grayscale(1)      removes the color (the black-and-white step)
-         brightness(...)   moves the cut-off point: --threshold is how bright a pixel must be to count as white
-         contrast(50)      pushes every pixel to black or white (the threshold itself)
-       mix-blend-mode: multiply then lets the page color show through the white parts
-       (white x pink = pink) while black stays black, which is what "Blend If" did in Photoshop.
-       --threshold comes from issues.js, one number per banner (0.5 if an issue doesn't set one). */
+
     filter: grayscale(1) brightness(calc(0.5 / var(--threshold, 0.5))) contrast(50);
     mix-blend-mode: multiply;
 }
@@ -163,46 +136,41 @@ a[data-formkit-toggle] {
 .banner-color {
     object-fit: cover;
     opacity: 0;
-    transition: opacity 0.4s ease;   /* how fast it disappears again when you move the mouse away */
+    transition: opacity 0.4s ease;
 }
 .row.playing .banner-color {
     opacity: 1;
-    /* transition: what, how long it takes, speed curve, and a DELAY before it starts.
-       Here: nothing happens for 4.5 seconds (the banner stays black and white), then the color
-       fades in over 1.5 seconds, so it's fully color after 6 seconds of hovering. */
+
     transition: opacity 1.5s ease-in-out 3.5s;
 }
 @media (prefers-reduced-motion: reduce) {
     .row.playing .banner-color {
-        transition: none;            /* no gradual fade for people who asked for less motion */
+        transition: none;
     }
 }
 
-/* Issue pages: full-width text */
 .article {
     font-size: 20px;
     background-color: rgb(254, 192, 229);
     line-height: 1.4;
-    max-width: var(--article-width);   /* never wider than this, so lines stay a comfortable length */
-    margin-left: auto;                 /* "auto" on both sides splits the leftover space evenly: */
-    margin-right: auto;                /* that centers the text and gives it margins */
-   /* outline: black dotted 2px;
-    outline-offset: -2px; */
+    max-width: var(--article-width);
+    margin-left: auto;
+    margin-right: auto;
+
     padding: 0.5em 1em;
     letter-spacing: 0em;
 }
 .article h1 {
-    font-size: inherit; /* same size as the text; the browser makes h1 huge by default */
+    font-size: inherit;
     margin: 0 0 1em 0;
 }
 .article p {
     margin: 0 0 1em 0;
-    font-family: "Georgia", Times, serif; /* a serif font for the text */
-    font-weight: 400; /* normal weight, not bold */
-    text-indent: 1em;  /* the FIRST line of every paragraph starts 1.5em in (36px at 24px text) */
+    font-family: "Georgia", Times, serif;
+    font-weight: 400;
+    text-indent: 1em;
 }
-/* ...except the small lines that aren't body text: the issue/date line, the credits, the works cited.
-   "p.article-meta" is more specific than ".article p", so this rule wins. */
+
 .article p.article-meta,
 .article p.works-cited {
     text-indent: 0;
@@ -212,59 +180,43 @@ a[data-formkit-toggle] {
     font-weight: 400;
 }
 
-/* Link style: a slightly darker pink than the page, with an underline.
-   Used for the links inside articles and for "subscribe" in the header. Change the color
-   in one place: --link-color at the top of this file. */
 .article a,
 a[data-formkit-toggle] {
     color: var(--link-color);
     text-decoration: underline;
-    text-underline-offset: 0.15em;   /* a little air between the letters and the line */
+    text-underline-offset: 0.15em;
 }
 
-/* ---------- Opening animation ---------- */
-/* These rules only apply while <body> has the class "intro-on". */
-
-/* An invisible block one screen tall, so the page has something to scroll through */
 body.intro-on #intro-spacer {
     height: 100vh;
 }
 
-/* Make the page exactly two screens tall (one screen of spacer + one screen of content),
-   so you can scroll through the intro and no further. If the table is taller than that,
-   the page just grows as needed. border-box counts the body's padding inside the 200vh. */
 body.intro-on {
     min-height: 200vh;
     box-sizing: border-box;
 }
 
-/* While the intro is still travelling (the class "intro-done" isn't on <body> yet), the page
-   underneath ignores the mouse: no banners opening, no links, no hover fades. */
 body.intro-on:not(.intro-done) .site-header,
 body.intro-on:not(.intro-done) main {
     pointer-events: none;
 }
 
-/* The header's own title is hidden while the intro is on; the floating title takes its place */
 body.intro-on .site-header .site-title {
     visibility: hidden;
 }
 
-/* A full-screen layer on top of everything. It never blocks clicks (pointer-events: none). */
 #intro {
     position: fixed;
-    /* Not "inset: 0" (= exactly the visible screen): on iPhones that box gets taller and shorter
-       every frame while Safari's toolbar slides, and the canvases inside would be resized with it.
-       100vh is the tallest the screen gets and never changes, so the layer stays the same size. */
+
     top: 0;
     left: 0;
     width: 100%;
     height: 100vh;
     overflow: hidden;
-    z-index: 10;            /* higher number = drawn on top */
+    z-index: 10;
     background: var(--white);
     pointer-events: none;
-    will-change: opacity;   /* a hint: this layer's opacity changes as you scroll, so give it its own layer */
+    will-change: opacity;
 }
 #ascii-far,
 #ascii {
@@ -274,26 +226,21 @@ body.intro-on .site-header .site-title {
     height: 100%;
 }
 
-/* The mantis, a faded ghost. The poster used the "Divide" blend mode, which CSS doesn't have,
-   but Divide = color-dodge applied to the inverted picture:
-   color-dodge gives  background / (1 - picture),  and inverting first makes that
-   background / picture,  which is exactly Divide. */
  #mantis {
     position: absolute;
-    height: 120vh;          /* a bit taller than the screen */
+    height: 120vh;
     width: auto;
     left: -5vw;
     bottom: -10vh;
     filter: invert(1);
     mix-blend-mode: color-dodge;
-    opacity: 0.4;          /* the "ghost" strength: 0 = invisible, 1 = as on the poster */
+    opacity: 0.4;
     pointer-events: none;
     user-select: none;
 }
-/* The same ghost, "baked" by script.js: the Divide blend was worked out once and the result is
-   already in the pixels, so the browser doesn't redo it on every frame (that was slow on phones). */
+
 #mantis.baked {
-    will-change: transform;   /* a hint: it moves as you scroll */
+    will-change: transform;
     filter: none;
     mix-blend-mode: normal;
     opacity: 1;
@@ -307,25 +254,19 @@ body.intro-on .site-header .site-title {
     font-weight: 400;
 }
 
-/* The floating title. script.js sets its position, size and padding as you scroll. */
 #float-title {
     position: fixed;
-    z-index: 20;            /* above the intro layer and the header */
+    z-index: 20;
     top: 0;
     left: 0;
-    transform-origin: 0 0;  /* script.js moves and scales it around its top-left corner */
-    /* until script.js takes over, sit in the middle of the screen (a % here means "of its own size") */
+    transform-origin: 0 0;
+
     transform: translate(calc(50vw - 50%), calc(50vh - 50%));
-    will-change: transform; /* a hint: it moves and scales as you scroll, so give it its own layer */
+    will-change: transform;
     white-space: nowrap;
-    pointer-events: none;   /* the logo is never clickable */
+    pointer-events: none;
 }
 
-/* ---------- Scroll-driven version of the intro ----------
-   script.js adds the class "native-intro" to <html> when the browser supports
-   animation-timeline: scroll(). Then the browser plays these animations itself, tied to how far
-   the page has scrolled (0 to --intro-h), instead of script.js moving things on every scroll event.
-   script.js fills in the --logo-* numbers once (they depend on the screen size). */
 @keyframes logo-travel {
     from { transform: translate(var(--logo-x0), var(--logo-y0)) scale(1); }
     to   { transform: translate(var(--logo-x1), var(--logo-y1)) scale(var(--logo-s1)); }
@@ -349,31 +290,28 @@ html.native-intro #mantis {
 html.native-intro #float-title { animation-name: logo-travel; animation-duration: 1ms; }
 html.native-intro #intro { animation-name: intro-fade; animation-duration: 1ms; }
 html.native-intro #mantis { animation-name: mantis-drift; animation-duration: 1ms; }
-/* Arrived: stop the animation and show the logo at its real size, so the text is sharp */
+
 html.native-intro body.intro-done #float-title {
     animation: none;
     font-size: var(--logo-end-size) !important;
     transform: translate(var(--logo-x1), var(--logo-y1));
 }
 
-/* When the intro is off, hide all of its pieces */
 body:not(.intro-on) #intro,
 body:not(.intro-on) #float-title,
 body:not(.intro-on) #intro-spacer {
     display: none;
 }
 
-/* Images inside an article */
 .article img {
     display: block;
     width: 100%;
-    max-width: 640px;   /* don't stretch small screenshots across a huge screen */
+    max-width: 640px;
     height: auto;
     margin: auto;
     padding: 0 0 1em 0;
 }
 
-/* A long quotation (the Marx quote in issue 1) */
 .article blockquote {
     margin: 0 0 1em 0;
     padding-left: 1em;
@@ -383,33 +321,25 @@ body:not(.intro-on) #intro-spacer {
     margin-bottom: 0;
 }
 
-/* The works cited / bibliography at the end of an article: smaller and lighter */
 .works-cited {
     font-size: 15px;
     font-weight: 400;
 }
-/* Long web addresses may break anywhere, so they never push the page sideways */
+
 .article a {
     overflow-wrap: anywhere;
 }
 
-/* ---------- Small screens ----------
-   @media (max-width: 800px) means "only apply the rules inside when the window is 800px wide
-   or narrower". It goes near the END of the file so it can override the rules above.
-   Seven columns don't fit on a phone, so the header uses three, and every issue becomes
-   a little stack of lines instead of a table row. */
 @media (max-width: 800px) {
-    /* smaller text overall on a phone (the archive, the header links). The logo that flies to the
-       corner reads this size too, so it ends up matching. */
+
     body {
         font-size: 17px;
     }
-    /* smaller article text on a phone */
+
     .article {
         font-size: 18px;
     }
 
-    /* the header: the logo gets a row of its own, then the 6 links fall into 2 rows of 3 */
     .grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
@@ -418,30 +348,26 @@ body:not(.intro-on) #intro-spacer {
         margin-bottom: 8px;
     }
     .site-header {
-        padding-bottom: 12px;   /* a little space between the links and the first issue */
+        padding-bottom: 12px;
     }
 
-    /* the column labels (issue / date / word count) aren't needed: each issue labels its own lines */
     .site-header .table-head {
         display: none;
     }
 
-    /* each issue: one column, so the lines stack: title, issue x, date, (banner) */
     #archive .row {
         grid-template-columns: minmax(0, 1fr);
     }
     .col-title {
-        grid-column: 1 / -1;    /* 1 / -1 = "the whole width", which here is just the one column */
+        grid-column: 1 / -1;
     }
     .col-words {
-        display: none;          /* no word count on a phone */
+        display: none;
     }
     .col-number::before {
-        content: "issue ";      /* ::before adds text in front of an element, here "issue " before the 6 */
+        content: "issue ";
     }
 
-    /* the mantis: on a tall, narrow screen, size it by its WIDTH. By height it would be wider than
-       the screen, and its head (on the right of the picture) would be cut off. */
     #mantis {
         height: auto;
         width: 120vw;
@@ -449,36 +375,30 @@ body:not(.intro-on) #intro-spacer {
         bottom: -5vh;
     }
 
-    /* banners use the full width on a phone */
     .banner-frame {
         width: 100%;
     }
 }
 
-/* ---------- Touch screens ----------
-   (hover: none) is true on devices where you can't hover, like phones and tablets.
-   There a banner can never be revealed by hovering, so it's always shown, under each issue. */
-/* Phones and tablets (no hover): hide the scrollbar. Desktop keeps its scrollbar. */
 @media (hover: none) {
     html {
-        scrollbar-width: none;      /* Firefox, Chrome */
+        scrollbar-width: none;
     }
     html::-webkit-scrollbar,
     body::-webkit-scrollbar {
-        display: none;              /* Safari */
+        display: none;
     }
 }
 
 @media (hover: none) {
     .banner-wrap {
-        max-height: none;     /* no longer squashed to 0 */
+        max-height: none;
         transition: none;
     }
     .banner-frame {
         margin: 4px 0;
     }
-    /* Banners stay black and white while they pixelate one after another. Later, script.js adds the
-       class "colored" to all of them at once, and the color fades in slowly. */
+
     .row.playing .banner-color {
         opacity: 0;
     }
@@ -488,16 +408,10 @@ body:not(.intro-on) #intro-spacer {
     }
 }
 
-/* ---------- Kit subscribe form ----------
-   The form is loaded from Kit, so we can only restyle it from out here.
-   Kit's own styles cap it at 700px wide; !important is needed to win against them. */
 .formkit-form[data-uid="328c15b38f"] {
     max-width: 900px !important;
 }
 
-/* On a phone the pop-up is made smaller: Kit's own text is huge and its padding is wide, so the form
-   was taller than the screen. We shrink the heading, the padding and the picture at the top.
-   (!important is needed again, to win against Kit's styles.) */
 @media (max-width: 800px) {
     .formkit-form[data-uid="328c15b38f"] .formkit-header {
         font-size: 17px !important;
@@ -511,8 +425,7 @@ body:not(.intro-on) #intro-spacer {
     .formkit-form[data-uid="328c15b38f"] .formkit-column {
         padding: 20px !important;
     }
-    /* The picture is almost square, but its box is wide and flat, so by default it is cropped.
-       "contain" fits the WHOLE picture inside the box instead (black bars appear at the sides). */
+
     .formkit-form[data-uid="328c15b38f"] .formkit-background {
         height: 260px !important;
         min-height: 260px !important;
@@ -522,19 +435,16 @@ body:not(.intro-on) #intro-spacer {
     }
 }
 
-/* small credit, stuck to the bottom right corner of the window. position: fixed pins it to the
-   window, so it stays there while you scroll. pointer-events: none lets clicks pass through it. */
 .site-footer {
     position: fixed;
     right: var(--gap);
     bottom: 6px;
     font-size: 12px;
     font-weight: 400;
-    z-index: 20;            /* above the opening animation (z-index 10) */
+    z-index: 20;
     pointer-events: none;
 }
 
-/* on phones the pinned credit covers the text, so there it sits at the very end of the page instead */
 @media (hover: none) {
     .site-footer {
         position: static;

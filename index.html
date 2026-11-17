@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>rage gait</title>
-    <link rel="stylesheet" href="style.css?v=24">
-    <!-- if JavaScript is off, skip the intro and show the page -->
+    <link rel="stylesheet" href="style.css?v=25">
+
     <noscript>
         <style>
             #intro, #float-title, #intro-spacer { display: none; }
@@ -15,35 +15,32 @@
 </head>
 <body class="intro-on">
     <script>
-        // Runs right away, before the page is drawn: should the intro play?
-        // Yes on the first visit in this tab, and on reload. No when coming back from another page.
         {
             let entry = performance.getEntriesByType("navigation")[0];
-            let navType = entry ? entry.type : "navigate"; // "navigate", "reload" or "back_forward"
+            let navType = entry ? entry.type : "navigate";
             let alreadySeen = false;
             try {
                 alreadySeen = sessionStorage.getItem("introSeen") === "yes";
-            } catch (e) { } // storage can be blocked (private windows); then we just play the intro
+            } catch (e) { }
 
             if (alreadySeen && navType !== "reload") {
-                document.body.classList.remove("intro-on"); // switches the intro off
+                document.body.classList.remove("intro-on");
             } else {
                 try { sessionStorage.setItem("introSeen", "yes"); } catch (e) { }
             }
         }
     </script>
-    <!-- opening animation: characters drift down; scrolling moves the title to the corner -->
+
     <div id="intro">
-        <canvas id="ascii-far"></canvas>   <!-- far characters: drawn behind the mantis -->
+        <canvas id="ascii-far"></canvas>
         <img id="mantis" src="assets/mantis.webp" alt="">
-        <canvas id="ascii"></canvas>       <!-- near characters: drawn in front of the mantis -->
-    
+        <canvas id="ascii"></canvas>
     </div>
     <span id="float-title" class="logo">rage gait</span>
     <div id="intro-spacer"></div>
 
     <header class="site-header">
-        
+
         <nav class="grid">
              <span class="site-title logo">rage gait</span>
             <a href="index.html" aria-current="page">archive</a>
@@ -54,8 +51,6 @@
             <a data-formkit-toggle="328c15b38f" href="https://rage-gait.kit.com/328c15b38f" id="subscribe-header">subscribe</a>
         </nav>
 
-        <!-- column names: this never changes, so it lives in plain HTML.
-             It's inside the header so it stays on screen with it while the rows scroll. -->
         <div class="row grid table-head">
             <div class="col-title">title</div>
             <div class="col-number">issue</div>
@@ -65,16 +60,13 @@
     </header>
 
     <main>
-        <!-- the issue rows are built here by script.js -->
+
         <div id="archive"></div>
     </main>
 
-    <!-- order matters: issues.js defines `issues`, then script.js uses it -->
-    <script src="issues.js?v=22"></script>
-    <script src="script.js?v=22"></script>
+    <script src="issues.js?v=25"></script>
+    <script src="script.js?v=25"></script>
 
-    <!-- Kit subscribe form: loads the form from Kit. The "subscribe" link in the header opens it
-         as a pop-up on top of the page (that's what the data-formkit-toggle attribute does). -->
     <script async data-uid="328c15b38f" src="https://rage-gait.kit.com/328c15b38f/index.js"></script>
     <footer class="site-footer">built by: efe aytekin</footer>
 </body>
