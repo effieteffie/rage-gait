@@ -509,6 +509,8 @@ function startIntro() {
     }
 
     let introLocked = false;
+    let snapping = false;
+    let snapAt = 0.8;
 
     function lockIntro() {
         let spacerHeight = spacer.offsetHeight;
@@ -561,6 +563,14 @@ function startIntro() {
             let x = lerp((window.innerWidth - titleW) / 2, corner, p);
             let y = lerp((stableH - titleH) / 2, corner, p);
             floatTitle.style.transform = "translate(" + x + "px, " + y + "px) scale(" + scale + ")";
+        }
+
+        if (p >= snapAt && !snapping) {
+            snapping = true;
+            window.scrollTo({ top: stableH, behavior: "smooth" });
+            setTimeout(function () {
+                if (!introLocked) lockIntro();
+            }, 700);
         }
 
         if (p >= 0.99) {
