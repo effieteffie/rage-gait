@@ -245,15 +245,6 @@ body.intro-on:not(.intro-done) main {
     pointer-events: none;
 }
 
-/* on phones the pinned credit covers the text, so there it sits at the very end of the page instead */
-@media (hover: none) {
-    .site-footer {
-        position: static;
-        text-align: right;
-        padding: 24px var(--gap) 12px;
-    }
-}
-
 /* The header's own title is hidden while the intro is on; the floating title takes its place */
 body.intro-on .site-header .site-title {
     visibility: hidden;
@@ -541,4 +532,13 @@ body:not(.intro-on) #intro-spacer {
     font-weight: 400;
     z-index: 20;            /* above the opening animation (z-index 10) */
     pointer-events: none;
+}
+
+/* on phones the pinned credit covers the text, so there it sits at the very end of the page instead */
+@media (hover: none) {
+    .site-footer {
+        position: static;
+        text-align: right;
+        padding: 24px var(--gap) 12px;
+    }
 }
