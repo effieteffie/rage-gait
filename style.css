@@ -528,7 +528,7 @@ body:not(.intro-on) #intro-spacer {
     position: fixed;
     right: var(--gap);
     bottom: 6px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 400;
     z-index: 20;            /* above the opening animation (z-index 10) */
     pointer-events: none;
